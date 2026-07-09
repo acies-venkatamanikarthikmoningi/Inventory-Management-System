@@ -19,7 +19,8 @@ import ToastContainer from './components/Toast/ToastContainer'
 /* ── Route Guards ───────────────────────────────────────── */
 function PrivateRoute({ children }) {
   const { user, node } = useApp()
-  if (!user || !node) return <Navigate to="/login" replace />
+  if (!user) return <Navigate to="/" replace />
+  if (!node) return <Navigate to="/select-node" replace />
   return children
 }
 
@@ -29,6 +30,9 @@ function PublicRoute({ children }) {
     const lastPath = localStorage.getItem('inventiq_last_path') || '/app/inventory'
     return <Navigate to={lastPath} replace />
   }
+  if (user && !node) {
+    return <Navigate to="/select-node" replace />
+  }
   return children
 }
 
@@ -37,7 +41,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<PublicRoute><Welcome /></PublicRoute>} />
-      <Route path="/select-node" element={<PublicRoute><NodeSelection /></PublicRoute>} />
+      <Route path="/select-node" element={<NodeSelection />} />
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
         <Route index element={<Navigate to="inventory" replace />} />
