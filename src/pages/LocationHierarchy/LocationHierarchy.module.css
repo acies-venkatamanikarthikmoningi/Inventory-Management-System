@@ -1,0 +1,293 @@
+/* ============================================================
+   LOCATION HIERARCHY STYLES
+   Professional Enterprise Visibility Dashboard Layout
+   ============================================================ */
+
+/* ── Breadcrumbs ─────────────────────────────────────────── */
+.breadcrumbBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.breadcrumbItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.breadcrumbSep {
+  color: var(--color-text-light);
+  flex-shrink: 0;
+}
+
+.breadcrumbLink {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  color: var(--color-primary-light);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all var(--transition-fast);
+}
+
+.breadcrumbLink:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-primary);
+}
+
+.breadcrumbLink:disabled {
+  cursor: default;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* ── Loading Skeleton / Spinner ────────────────────────── */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-muted);
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3.5px solid var(--color-border);
+  border-top-color: var(--color-primary-light);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Landing View Header Card ────────────────────────────── */
+.dcHeaderCard, .levelHeaderCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.dcHeaderIcon, .levelHeaderIcon {
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: #fff;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-md);
+}
+
+.dcTitle, .levelTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.dcSubtitle, .levelSubtitle {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ── KPI Metrics Grid ────────────────────────────────────── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpiCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.kpiHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.kpiLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.kpiValue {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.1;
+  margin-top: 4px;
+}
+
+.kpiSubtext {
+  font-size: 11px;
+  color: var(--color-text-light);
+  margin-top: 6px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+  margin-top: 10px;
+}
+
+/* ── Zone / Type / Bin Cards ─────────────────────────────── */
+.zoneGrid, .typeGrid, .binGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.zoneCard, .typeCard, .binCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px !important;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.zoneCard:hover, .typeCard:hover, .binCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-light);
+  background: var(--color-surface-hover);
+}
+
+.zoneCardHeader, .typeCardHeader, .binCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoneIcon {
+  color: var(--color-warning);
+}
+
+.typeIcon {
+  color: var(--color-info);
+}
+
+.binIcon {
+  color: var(--color-primary-light);
+}
+
+.zoneName, .typeName, .binName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.zoneCardBody, .typeCardBody, .binCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.zoneStorageType {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.zoneStatsRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--color-text-light);
+  margin-top: 4px;
+}
+
+.zoneStatsRow strong {
+  color: var(--color-text);
+}
+
+.zoneCardFooter, .typeCardFooter, .binCardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary-light);
+  border-top: 1px solid var(--color-border);
+  padding-top: 10px;
+}
+
+/* ── Bins SKU List Table Rows ────────────────────────────── */
+.skuRow {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.skuRow:hover {
+  background: var(--color-surface-hover) !important;
+}
+
+.skuTableTitle {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .kpiGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpiGrid {
+    grid-template-columns: 1fr;
+  }
+}

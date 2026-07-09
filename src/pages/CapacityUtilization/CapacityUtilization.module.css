@@ -1,0 +1,90 @@
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 960px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* Zone stacked bars */
+.zoneBar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zoneBarLabels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.zoneName {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.zonePct {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stackedBar {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--color-border);
+}
+
+.stackedBar > div {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.zoneNums {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 10px;
+}
+
+/* Stack Legend */
+.stackLegend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Overflow alert */
+.overflowAlert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--color-danger-light);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  color: var(--color-danger);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 14px;
+}

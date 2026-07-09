@@ -1,0 +1,569 @@
+/* ============================================================
+   NodeSelection — Enterprise FMCG Supply Chain Node Picker
+   ============================================================ */
+
+.page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #080f1e 0%, #0d1b38 50%, #0a1628 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle ambient background glow */
+.page::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  right: -100px;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.07), transparent 65%);
+  pointer-events: none;
+}
+
+.page::after {
+  content: '';
+  position: absolute;
+  bottom: -200px;
+  left: -100px;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.05), transparent 65%);
+  pointer-events: none;
+}
+
+.container {
+  max-width: 1120px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Back Button ────────────────────────────────────────── */
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  margin-bottom: 28px;
+  transition: all 0.15s;
+}
+
+.backBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* ── Page Header ────────────────────────────────────────── */
+.header {
+  margin-bottom: 28px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+}
+
+/* ── Map + Panel layout ─────────────────────────────────── */
+.mapLayout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .mapLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Map Container ──────────────────────────────────────── */
+.mapWrap {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(56, 189, 248, 0.1);
+  border-radius: 16px;
+  padding: 20px 16px 16px;
+}
+
+.mapLegendRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.mapLegendLabel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Map container with overlay markers ─────────────────── */
+.mapContainer {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  /* Keep aspect ratio of India outline SVG (500 × 582) */
+  aspect-ratio: 500 / 582;
+}
+
+/* Real India outline SVG from Wikimedia */
+.indiaMapImg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  /* Invert to white outline, then colorize to blue on dark bg */
+  filter: invert(1) sepia(1) saturate(2) hue-rotate(185deg) brightness(0.55) contrast(1.2);
+  user-select: none;
+  pointer-events: none;
+  border-radius: 4px;
+}
+
+.mapDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2563EB;
+  border: 1.5px solid #38BDF8;
+}
+
+.mapLegendHint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.28);
+  font-style: italic;
+}
+
+/* ── Percentage-positioned marker system ────────────────── */
+.markerWrap {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Main marker dot */
+.markerDot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.8);
+  border: 1.5px solid #38BDF8;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+  position: relative;
+  z-index: 2;
+}
+
+.markerHovered .markerDot {
+  width: 13px;
+  height: 13px;
+  background: #38BDF8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
+}
+
+.markerSelected .markerDot {
+  width: 14px;
+  height: 14px;
+  background: #2563EB;
+  border-color: #93C5FD;
+  box-shadow: 0 0 16px rgba(37, 99, 235, 0.9);
+}
+
+/* Pulse ring — selected state only */
+.pulseRing {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid #2563EB;
+  animation: markerPulse 2.2s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes markerPulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: scale(1.6);
+    opacity: 0.1;
+  }
+}
+
+/* Hover ring */
+.hoverRing {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  z-index: 1;
+}
+
+/* City label */
+.markerLabel {
+  position: absolute;
+  font-size: 10.5px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  color: rgba(200, 220, 255, 0.8);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 3;
+  transition: color 0.2s;
+}
+
+.markerSelected .markerLabel {
+  color: #93C5FD;
+  font-weight: 700;
+}
+
+/* Label positioning — to the right by default */
+.labelRight {
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Label positioning — to the left for right-side markers */
+.labelLeft {
+  right: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* ── Info Panel ─────────────────────────────────────────── */
+.infoPanel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(56, 189, 248, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ── Selected Node State ────────────────────────────────── */
+.selectedInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.selectedHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.selectedIconWrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.selectedName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.35;
+  margin: 0 0 8px;
+}
+
+.selectedMeta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 0;
+}
+
+/* ── KPI Section ────────────────────────────────────────── */
+.kpiSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kpiSectionLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+/* Utilization bar card */
+.kpiUtilCard {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kpiUtilHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpiUtilLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kpiUtilLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpiUtilValue {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.utilBarTrack {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.utilBarFill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+
+/* KPI grid for other metrics */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.kpiCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.kpiIconWrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: rgba(56, 189, 248, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38BDF8;
+  flex-shrink: 0;
+}
+
+.kpiValue {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpiLabel {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+/* ── Continue Button ────────────────────────────────────── */
+.continueBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #2563EB, #1D4ED8);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+  margin-top: 4px;
+}
+
+.continueBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.5);
+}
+
+.continueBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Empty State ─────────────────────────────────────────── */
+.emptyInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.emptyIconWrap {
+  width: 64px;
+  height: 64px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38BDF8;
+}
+
+.emptyTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+.emptyDesc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.38);
+  line-height: 1.7;
+  max-width: 230px;
+  margin: 0;
+}
+
+/* Quick node list */
+.quickList {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.quickListLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 4px;
+  text-align: left;
+}
+
+.quickItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  width: 100%;
+}
+
+.quickItem:hover {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.quickDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2563EB;
+  border: 1.5px solid #38BDF8;
+  flex-shrink: 0;
+}
+
+.quickCity {
+  flex: 1;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 500;
+}
+
+.quickUtil {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,156 @@
+{
+  "warehouses": [
+    {
+      "id": "WH-01",
+      "name": "Chennai Distribution Center",
+      "type": "Distribution",
+      "totalCapacity": 50000,
+      "occupiedCapacity": 38500,
+      "address": "Plot 42, SIPCOT Industrial Estate, Hosur Road, Chennai - 600032",
+      "areas": [
+        {
+          "id": "AREA-01",
+          "name": "Pharmaceutical Zone",
+          "capacity": 20000,
+          "occupied": 15000,
+          "zones": [
+            {
+              "id": "ZONE-01",
+              "name": "Zone 1 - General Storage",
+              "capacity": 10000,
+              "occupied": 8000,
+              "racks": [
+                {
+                  "id": "RACK-A1",
+                  "name": "Rack A1",
+                  "capacity": 2000,
+                  "occupied": 1800,
+                  "columns": [
+                    { "id": "COL-A1-1", "name": "Col 1", "levels": ["L1","L2","L3","L4"], "deepPositions": 3 },
+                    { "id": "COL-A1-2", "name": "Col 2", "levels": ["L1","L2","L3","L4"], "deepPositions": 3 },
+                    { "id": "COL-A1-3", "name": "Col 3", "levels": ["L1","L2","L3","L4"], "deepPositions": 3 }
+                  ]
+                },
+                {
+                  "id": "RACK-A2",
+                  "name": "Rack A2",
+                  "capacity": 2000,
+                  "occupied": 1600,
+                  "columns": [
+                    { "id": "COL-A2-1", "name": "Col 1", "levels": ["L1","L2","L3","L4"], "deepPositions": 3 },
+                    { "id": "COL-A2-2", "name": "Col 2", "levels": ["L1","L2","L3","L4"], "deepPositions": 3 }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ZONE-02",
+              "name": "Zone 2 - PPE Storage",
+              "capacity": 10000,
+              "occupied": 7000,
+              "racks": [
+                {
+                  "id": "RACK-B1",
+                  "name": "Rack B1",
+                  "capacity": 2500,
+                  "occupied": 2000,
+                  "columns": [
+                    { "id": "COL-B1-1", "name": "Col 1", "levels": ["L1","L2","L3"], "deepPositions": 2 },
+                    { "id": "COL-B1-2", "name": "Col 2", "levels": ["L1","L2","L3"], "deepPositions": 2 }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "AREA-02",
+          "name": "Cold Chain Zone",
+          "capacity": 10000,
+          "occupied": 5500,
+          "zones": [
+            {
+              "id": "ZONE-04",
+              "name": "Zone 4 - Cold Storage",
+              "capacity": 10000,
+              "occupied": 5500,
+              "racks": [
+                {
+                  "id": "RACK-CS1",
+                  "name": "Cold Rack CS1",
+                  "capacity": 3000,
+                  "occupied": 2500,
+                  "columns": [
+                    { "id": "COL-CS1-1", "name": "Col 1", "levels": ["L1","L2","L3","L4","L5"], "deepPositions": 4 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "WH-02",
+      "name": "Bangalore Distribution Center",
+      "type": "Distribution",
+      "totalCapacity": 40000,
+      "occupiedCapacity": 28000,
+      "address": "Sy No. 78, Electronic City Phase II, Bengaluru - 560100",
+      "areas": [
+        {
+          "id": "AREA-03",
+          "name": "General Merchandise",
+          "capacity": 40000,
+          "occupied": 28000,
+          "zones": [
+            {
+              "id": "ZONE-05",
+              "name": "Zone 5 - Nutraceuticals",
+              "capacity": 15000,
+              "occupied": 10000,
+              "racks": [
+                {
+                  "id": "RACK-G1",
+                  "name": "Rack G1",
+                  "capacity": 3000,
+                  "occupied": 2200,
+                  "columns": [
+                    { "id": "COL-G1-1", "name": "Col 1", "levels": ["L1","L2","L3","L4"], "deepPositions": 3 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "WH-03",
+      "name": "Mumbai Distribution Center",
+      "type": "Distribution",
+      "totalCapacity": 60000,
+      "occupiedCapacity": 42000,
+      "address": "Plot 15, MIDC Andheri East, Mumbai - 400093",
+      "areas": []
+    },
+    {
+      "id": "WH-04",
+      "name": "Hyderabad Plant",
+      "type": "Manufacturing",
+      "totalCapacity": 35000,
+      "occupiedCapacity": 22000,
+      "address": "IDA Jeedimetla, Phase III, Hyderabad - 500055",
+      "areas": []
+    },
+    {
+      "id": "WH-05",
+      "name": "Pune Warehouse",
+      "type": "Storage",
+      "totalCapacity": 45000,
+      "occupiedCapacity": 30000,
+      "address": "Gut No. 234, Chakan Industrial Area, Pune - 410501",
+      "areas": []
+    }
+  ]
+}

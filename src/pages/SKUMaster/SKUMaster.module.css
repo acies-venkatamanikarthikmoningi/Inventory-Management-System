@@ -1,0 +1,110 @@
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px !important;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.searchIcon {
+  color: var(--color-text-light);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+  outline: none;
+}
+
+.skuGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+}
+
+.skuCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.skuCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.skuCode {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: #DBEAFE;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.skuStatus { margin-top: 6px; }
+
+.skuActions { display: flex; gap: 4px; flex-shrink: 0; }
+
+.skuName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.3;
+  margin-top: -4px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.fieldRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fieldLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.fieldVal {
+  font-size: 13px;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.stockLevels {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.stockItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px;
+  text-align: center;
+  border-right: 1px solid var(--color-border);
+}
+
+.stockItem:last-child { border-right: none; }
