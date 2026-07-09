@@ -1,3 +1,35 @@
+.tabStrip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.tabButton {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tabButton:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.tabButtonActive {
+  background: var(--color-primary);
+  color: white;
+}
+
 .filterBar {
   display: flex;
   align-items: center;
@@ -22,6 +54,74 @@
   font-size: var(--font-size-md);
   color: var(--color-text);
   outline: none;
+}
+
+.filterSelect {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tableCard {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.tableHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.qtyInput {
+  width: 92px;
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.toggleSwitch {
+  width: 42px;
+  height: 24px;
+  padding: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface-hover);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.toggleSwitch span {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease;
+}
+
+.toggleSwitchOn {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.toggleSwitchOn span {
+  transform: translateX(18px);
 }
 
 .insightList {
@@ -131,7 +231,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 18px;
   padding: 14px;
   background: var(--color-surface-hover);
   border: 1px solid var(--color-border);
@@ -139,11 +239,38 @@
   color: var(--color-text);
 }
 
-.driftCompare strong {
+.driftValue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.driftValueMain {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.driftValueMain strong {
   font-size: var(--font-size-3xl);
   line-height: 1.1;
   font-weight: 800;
   color: var(--color-text);
+}
+
+.baseUomLine {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.uomPalletBadge {
+  background: #EDE9FE;
+  color: #6D28D9;
 }
 
 .driftCompare svg {
@@ -272,5 +399,9 @@
 
   .driftCompare {
     flex-wrap: wrap;
+  }
+
+  .driftValue {
+    min-width: 120px;
   }
 }

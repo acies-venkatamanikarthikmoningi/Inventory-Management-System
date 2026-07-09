@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react'
 import { ArrowLeft, CheckSquare, ChevronRight, FileText, PackageCheck, Plus, Sparkles, Upload, X, Zap } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import Drawer from '../../components/Drawer/Drawer'
-import inboundSeed from '../../data/inbound.json'
 import skuData from '../../data/sku.json'
 import styles from './Inbound.module.css'
 
@@ -42,13 +41,12 @@ const getExpiry = mfgDate => {
 }
 
 export default function Inbound() {
-  const { node, showToast, inventoryData, setInventoryData } = useApp()
+  const { node, showToast, inventoryData, setInventoryData, asns, setAsns } = useApp()
   const fileRef = useRef(null)
   const activeNode = node || 'Chennai Distribution Center'
 
   const [activeView, setActiveView] = useState('landing')
   const [asnMode, setAsnMode] = useState('upload')
-  const [asns, setAsns] = useState(inboundSeed)
   const [fileName, setFileName] = useState('')
   const [dragging, setDragging] = useState(false)
   const [createLines, setCreateLines] = useState([{ ...emptyLine }])
@@ -119,6 +117,7 @@ export default function Inbound() {
       id,
       source,
       status: 'Pending',
+      node: activeNode,
       createdAt: new Date().toISOString(),
       lines: hydratedLines,
       receivedAt: null,

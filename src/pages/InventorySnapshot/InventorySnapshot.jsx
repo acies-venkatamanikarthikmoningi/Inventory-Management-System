@@ -5,6 +5,8 @@ import { Search, Filter, Download, ChevronUp, ChevronDown, X, Package, Layers, M
 import areaMaster from '../../data/areaMaster.json'
 import binCapacityMaster from '../../data/binCapacityMaster.json'
 import skuMasterData from '../../data/sku.json'
+import { CASES_PER_PALLET, getInventoryUomSimulation, getUomDisplayFromType } from '../../utils/uomDisplay'
+import { getRowReplenishmentStatus, normalizeNode } from '../../utils/replenishmentStatus'
 import Drawer, { DrawerSection, DetailGrid, MovementHistory } from '../../components/Drawer/Drawer'
 import styles from './InventorySnapshot.module.css'
 
@@ -57,51 +59,8 @@ const getBucket = (item) => {
   return 'Good'
 }
 
-const CASES_PER_PALLET = 40
-const CASES_TO_EACHES = 24
-const EACHES_PER_PALLET = CASES_TO_EACHES * CASES_PER_PALLET
-
-const hashString = value => {
-  let hash = 2166136261
-  for (let i = 0; i < value.length; i++) {
-    hash ^= value.charCodeAt(i)
-    hash = Math.imul(hash, 16777619)
-  }
-  return hash >>> 0
-}
-
-const randomFromSeed = (seed, salt = '') => hashString(`${seed}|${salt}`) / 4294967295
-const randomIntFromSeed = (seed, salt, min, max) => min + Math.floor(randomFromSeed(seed, salt) * (max - min + 1))
-
-const getUomSimulation = item => {
-  const seed = [
-    item.skuCode,
-    item.batch,
-    item.binCode || parseLocation(item).bin,
-    item.id,
-  ].filter(Boolean).join('|')
-  const typeRoll = randomFromSeed(seed, 'uom-type')
-
-  if (typeRoll < 0.4) {
-    const quantity = randomIntFromSeed(seed, 'each-qty', 10, 300)
-    return { type: 'Each', quantity, qtyInBaseUom: quantity }
-  }
-
-  if (typeRoll < 0.85) {
-    const quantity = randomIntFromSeed(seed, 'case-qty', 2, 25)
-    return { type: 'Case', quantity, qtyInBaseUom: quantity * CASES_TO_EACHES }
-  }
-
-  const quantity = randomIntFromSeed(seed, 'pallet-qty', 1, 2)
-  return { type: 'Pallet', quantity, qtyInBaseUom: quantity * EACHES_PER_PALLET }
-}
-
-const getUomDisplay = item => {
-  const { type } = getUomSimulation(item)
-  if (type === 'Case') return 'CASES'
-  if (type === 'Pallet') return 'PALLETS'
-  return 'EACHES'
-}
+const getUomSimulation = item => getInventoryUomSimulation(item)
+const getUomDisplay = item => getUomDisplayFromType(getUomSimulation(item).type)
 
 const getUomBadgeClass = item => {
   const { type } = getUomSimulation(item)
@@ -203,7 +162,7 @@ const EMPTY_FILTERS = {
 }
 
 export default function InventorySnapshot() {
-  const { showToast, node, inventoryData } = useApp()
+  const { showToast, node, inventoryData, asns, replenishmentConfig } = useApp()
   const [search, setSearch]           = useState('')
   const [filters, setFilters]         = useState(EMPTY_FILTERS)
   const [showFilters, setShowFilters] = useState(false)
@@ -603,6 +562,13 @@ export default function InventorySnapshot() {
                 const locParts = parseLocation(item)
                 const bucketVal = getBucket(item)
                 const uomSim = getUomSimulation(item)
+                const replenishmentStatus = getRowReplenishmentStatus({
+                  item,
+                  inventoryData,
+                  node: normalizeNode(node),
+                  replenishmentConfig,
+                  asns,
+                })
                 
                 return (
                   <tr key={item.id} className={styles.tableRow} onClick={() => openDrawer(item)}>
@@ -675,7 +641,12 @@ export default function InventorySnapshot() {
                     )}
                     {visibleCols.quantity && (
                       <td className="text-sm" style={{ textAlign: 'right' }}>
-                        {formatPlainNumber(uomSim.quantity)}
+                        <div>{formatPlainNumber(uomSim.quantity)}</div>
+                        {replenishmentStatus && (
+                          <span className={`badge ${replenishmentStatus.className}`} style={{ fontSize: 10, marginTop: 4 }}>
+                            {replenishmentStatus.label}
+                          </span>
+                        )}
                       </td>
                     )}
                     {visibleCols.uom && (
