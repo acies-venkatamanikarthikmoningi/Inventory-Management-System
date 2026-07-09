@@ -4,7 +4,6 @@ import { useApp } from '../../context/AppContext'
 import {
   ChevronRight, Warehouse, LayoutGrid, Layers, Archive, Package, Tag, Activity, MapPin
 } from 'lucide-react'
-import inventoryData from '../../data/inventory.json'
 import Drawer, { DrawerSection, DetailGrid, MovementHistory } from '../../components/Drawer/Drawer'
 import styles from './LocationHierarchy.module.css'
 
@@ -66,7 +65,7 @@ const NODE_KPIS = {
 }
 
 export default function LocationHierarchy() {
-  const { node } = useApp()
+  const { node, inventoryData } = useApp()
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Track hierarchy levels

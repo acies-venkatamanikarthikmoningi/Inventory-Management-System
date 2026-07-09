@@ -1,0 +1,65 @@
+[
+  {
+    "id": "ASN-1001",
+    "source": "manual_upload",
+    "status": "Pending",
+    "node": "Chennai Distribution Center",
+    "createdAt": "2026-07-08T10:00:00Z",
+    "lines": [
+      { "skuCode": "SKU-2003", "skuName": "Coca-Cola 1.25L", "uom": "Case", "batch": "BCH-INB-501", "mfgDate": "2026-06-20", "qty": 500 },
+      { "skuCode": "SKU-2007", "skuName": "Tata Salt 1kg", "uom": "Case", "batch": "BCH-INB-502", "mfgDate": "2026-06-22", "qty": 300 }
+    ],
+    "receivedAt": null,
+    "grnNumber": null
+  },
+  {
+    "id": "ASN-1002",
+    "source": "manual_create",
+    "status": "Pending",
+    "node": "Chennai Distribution Center",
+    "createdAt": "2026-07-08T12:30:00Z",
+    "lines": [
+      { "skuCode": "SKU-2001", "skuName": "Amul Butter 500g", "uom": "Each", "batch": "BCH-INB-503", "mfgDate": "2026-06-18", "qty": 240 },
+      { "skuCode": "SKU-2018", "skuName": "Mother Dairy Paneer 200g", "uom": "L1", "batch": "BCH-INB-504", "mfgDate": "2026-06-19", "qty": 180 }
+    ],
+    "receivedAt": null,
+    "grnNumber": null
+  },
+  {
+    "id": "ASN-1003",
+    "source": "auto",
+    "status": "Received (GRN Submitted)",
+    "node": "Chennai Distribution Center",
+    "createdAt": "2026-07-06T08:15:00Z",
+    "lines": [
+      { "skuCode": "SKU-2050", "skuName": "Dettol Antiseptic Liquid 550ml", "uom": "Case", "batch": "BCH-INB-505", "mfgDate": "2026-06-12", "qty": 600 }
+    ],
+    "receivedAt": "2026-07-06T13:05:00Z",
+    "grnNumber": "GRN-1003"
+  },
+  {
+    "id": "ASN-1004",
+    "source": "manual_upload",
+    "status": "Pending",
+    "node": "Bangalore Distribution Center",
+    "createdAt": "2026-07-07T15:45:00Z",
+    "lines": [
+      { "skuCode": "SKU-2042", "skuName": "Himalaya Baby Lotion 400ml", "uom": "L2", "batch": "BCH-INB-506", "mfgDate": "2026-06-25", "qty": 420 }
+    ],
+    "receivedAt": null,
+    "grnNumber": null
+  },
+  {
+    "id": "ASN-1005",
+    "source": "manual_create",
+    "status": "Received (GRN Submitted)",
+    "node": "Mumbai Distribution Center",
+    "createdAt": "2026-07-05T09:20:00Z",
+    "lines": [
+      { "skuCode": "SKU-2002", "skuName": "Surf Excel Easy Wash 1kg", "uom": "Case", "batch": "BCH-INB-507", "mfgDate": "2026-06-10", "qty": 800 },
+      { "skuCode": "SKU-2004", "skuName": "Britannia Marie Gold 250g", "uom": "Case", "batch": "BCH-INB-508", "mfgDate": "2026-06-14", "qty": 650 }
+    ],
+    "receivedAt": "2026-07-05T16:10:00Z",
+    "grnNumber": "GRN-1005"
+  }
+]
