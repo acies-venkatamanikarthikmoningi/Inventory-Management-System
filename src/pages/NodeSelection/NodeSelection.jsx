@@ -512,7 +512,6 @@ export default function NodeSelection() {
                         <span className={styles.markerDot} style={{ background: isSel ? '#38BDF8' : '#2563EB' }} />
                       </>
                     )}
-
                     <span className={`${styles.markerLabel} ${node.labelDir === 'left' ? styles.labelLeft : styles.labelRight}`}>
                       {node.city} {isPlant ? '(Plant)' : ''}
                     </span>
