@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import {
   User, Moon, Sun, Bell, Shield, Database, Activity,
@@ -27,6 +28,7 @@ const AI_FEATURES = [
 
 export default function Settings() {
   const { user, theme, toggleTheme, node, showToast } = useApp()
+  const navigate = useNavigate()
 
   const [notifSettings, setNotifSettings] = useState({
     lowStock:    true,
@@ -78,7 +80,17 @@ export default function Settings() {
             </div>
             <div className="form-group">
               <label className="form-label">Working Node</label>
-              <input className="form-input" defaultValue={node} readOnly />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input className="form-input" defaultValue={node} readOnly style={{ flex: 1 }} />
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => navigate('/select-node')}
+                  style={{ display: 'flex', alignItems: 'center', height: '38px', padding: '0 12px' }}
+                >
+                  Switch Node
+                </button>
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">Email</label>

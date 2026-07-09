@@ -120,9 +120,22 @@
 .mapLegendLabel {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.45);
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.legendLabel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -161,8 +174,9 @@
 
 .mapLegendHint {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.65);
   font-style: italic;
+  font-weight: 500;
 }
 
 /* ── Percentage-positioned marker system ────────────────── */
@@ -566,4 +580,357 @@
   font-size: 11px;
   color: rgba(255, 255, 255, 0.35);
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Route Overlays & Plant Markers ──────────────────────── */
+.routesOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.routeLine {
+  stroke: rgba(56, 189, 248, 0.15);
+  stroke-width: 1.5;
+  transition: stroke 0.3s, stroke-width 0.3s, opacity 0.3s;
+}
+
+.routeDash {
+  stroke: #38BDF8;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 6 22;
+  stroke-dashoffset: 0;
+  animation: routeFlow 10s linear infinite;
+  opacity: 0.3;
+  transition: opacity 0.3s, stroke-width 0.3s;
+}
+
+.transferLine {
+  stroke: rgba(245, 158, 11, 0.15);
+  stroke-width: 1.25;
+  stroke-dasharray: 3 3;
+  transition: stroke 0.3s, stroke-width 0.3s, opacity 0.3s;
+}
+
+.transferDash {
+  stroke: #F59E0B;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-dasharray: 5 15;
+  stroke-dashoffset: 0;
+  animation: routeFlow 12s linear infinite;
+  opacity: 0.25;
+  transition: opacity 0.3s, stroke-width 0.3s;
+}
+
+@keyframes routeFlow {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.routeHighlight {
+  stroke-width: 2.25;
+}
+
+.routeHighlight.routeLine {
+  stroke: rgba(56, 189, 248, 0.4);
+}
+
+.routeHighlight.transferLine {
+  stroke: rgba(245, 158, 11, 0.4);
+}
+
+.dashHighlight {
+  opacity: 0.95;
+  stroke-width: 2.25;
+}
+
+.dashHighlight.routeDash {
+  stroke: #38BDF8;
+}
+
+.dashHighlight.transferDash {
+  stroke: #F59E0B;
+}
+
+/* Midpoint badges */
+.routeBadge {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+.badgeSource {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38BDF8;
+}
+
+.badgeTransfer {
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #F59E0B;
+}
+
+.routeBadgeActive {
+  transform: translate(-50%, -50%) scale(1.1);
+  border-width: 1.5px;
+  z-index: 12;
+}
+
+.routeBadgeActive.badgeSource {
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+}
+
+.routeBadgeActive.badgeTransfer {
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
+}
+
+/* Legend items & layout */
+.legendWrapper {
+  display: flex;
+  align-items: center;
+}
+
+.plantLegendIcon {
+  background: #312E81;
+  border: 1px solid #818CF8;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 5px rgba(99, 102, 241, 0.4);
+  margin-right: 5px;
+}
+
+.plantDotLegend {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6366F1;
+  border: 1.5px solid #818CF8;
+  margin-right: 4px;
+  margin-left: 2px;
+}
+
+.dcDotLegend {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2563EB;
+  border: 1.5px solid #38BDF8;
+  margin-right: 4px;
+  margin-left: 2px;
+}
+
+.routeLineLegend {
+  display: inline-block;
+  width: 12px;
+  height: 2px;
+  background: #38BDF8;
+  vertical-align: middle;
+  margin-right: 4px;
+  margin-left: 2px;
+}
+
+.transferLineLegend {
+  display: inline-block;
+  width: 12px;
+  height: 2px;
+  background: #F59E0B;
+  vertical-align: middle;
+  margin-right: 4px;
+  margin-left: 2px;
+}
+
+/* Views Filter tab buttons */
+.filterGroup {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.filterBtn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.filterBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.filterBtnActive {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38BDF8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+/* Plant markers styling */
+.plantMarker {
+  z-index: 8 !important;
+}
+
+.plantMarker :global(.markerLabel) {
+  color: #A5B4FC !important;
+}
+
+.plantIconWrap {
+  background: #312E81;
+  border: 1.5px solid #818CF8;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+  z-index: 5;
+  transition: all 0.2s ease;
+}
+
+.markerHovered.plantMarker .plantIconWrap {
+  transform: scale(1.15);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.7);
+}
+
+/* Lead Time detail card styling */
+.leadTimeCard {
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 10px;
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.plantMiniIcon {
+  font-size: 13px;
+  background: #312E81;
+  border: 1px solid #818CF8;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Interactive Connections & transfers list styling */
+.routeSection {
+  margin-top: 6px;
+}
+
+.connectionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.connectionItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.connectionItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.leadTimeLabel {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.1);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.plantSelectTip {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+/* Mode Switcher Tabs */
+.tabContainer {
+  display: flex;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.tabBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: none;
+  border: 1px solid transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.tabBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tabBtnActive {
+  background: #2563EB !important;
+  color: #fff !important;
+  border-color: #38BDF8 !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
