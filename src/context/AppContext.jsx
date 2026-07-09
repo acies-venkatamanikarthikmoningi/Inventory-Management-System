@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react'
+import baseInventoryData from '../data/inventory.json'
 
 /* ── App Context: Auth + Theme + Toast + Node ─────────────── */
 const AppContext = createContext(null)
@@ -16,6 +17,7 @@ export function AppProvider({ children }) {
   const [theme, setTheme]     = useState('light')
   const [toasts, setToasts]   = useState([])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [inventoryData, setInventoryData] = useState(baseInventoryData)
 
   const handleSetNode = useCallback((selectedNode) => {
     setNode(selectedNode)
@@ -81,6 +83,7 @@ export function AppProvider({ children }) {
       theme, toggleTheme,
       toasts, showToast, removeToast,
       sidebarCollapsed, setSidebarCollapsed,
+      inventoryData, setInventoryData,
     }}>
       {children}
     </AppContext.Provider>

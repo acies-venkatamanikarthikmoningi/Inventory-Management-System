@@ -9,6 +9,7 @@ import InventorySnapshot from './pages/InventorySnapshot/InventorySnapshot'
 import SKUMaster from './pages/SKUMaster/SKUMaster'
 import LocationHierarchy from './pages/LocationHierarchy/LocationHierarchy'
 import DataUpload from './pages/DataUpload/DataUpload'
+import Inbound from './pages/Inbound/Inbound'
 import BatchTracking from './pages/BatchTracking/BatchTracking'
 import CapacityUtilization from './pages/CapacityUtilization/CapacityUtilization'
 import InventoryInsights from './pages/InventoryInsights/InventoryInsights'
@@ -45,6 +46,7 @@ function AppRoutes() {
         <Route path="sku-explore" element={<SKUMaster />} />
         <Route path="locations" element={<LocationHierarchy />} />
         <Route path="data-upload" element={<DataUpload />} />
+        <Route path="inbound" element={<Inbound />} />
         <Route path="batches" element={<BatchTracking />} />
         <Route path="capacity" element={<CapacityUtilization />} />
         <Route path="insights" element={<InventoryInsights />} />

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { Search, Filter, Download, ChevronUp, ChevronDown, X, Package, Layers, MapPin, Activity, Tag, Settings } from 'lucide-react'
-import inventoryData from '../../data/inventory.json'
+import baseInventoryData from '../../data/inventory.json'
 import Drawer, { DrawerSection, DetailGrid, MovementHistory } from '../../components/Drawer/Drawer'
 import styles from './InventorySnapshot.module.css'
 
@@ -77,9 +77,9 @@ const classificationClass = c => ({
   'Slow Moving':   'badge-info',
 }[c] || 'badge-default')
 
-const CATEGORIES  = [...new Set(inventoryData.map(i => i.category))]
-const BRANDS      = [...new Set(inventoryData.map(i => i.brand))]
-const NODES       = [...new Set(inventoryData.map(i => i.node))]
+const CATEGORIES  = [...new Set(baseInventoryData.map(i => i.category))]
+const BRANDS      = [...new Set(baseInventoryData.map(i => i.brand))]
+const NODES       = [...new Set(baseInventoryData.map(i => i.node))]
 const PAGE_SIZES  = [10, 25, 50]
 
 const EMPTY_FILTERS = {
@@ -89,7 +89,7 @@ const EMPTY_FILTERS = {
 }
 
 export default function InventorySnapshot() {
-  const { showToast, node } = useApp()
+  const { showToast, node, inventoryData } = useApp()
   const [search, setSearch]           = useState('')
   const [filters, setFilters]         = useState(EMPTY_FILTERS)
   const [showFilters, setShowFilters] = useState(false)

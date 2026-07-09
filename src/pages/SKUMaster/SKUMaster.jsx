@@ -2,11 +2,10 @@ import { useState, useMemo } from 'react'
 import { useApp } from '../../context/AppContext'
 import { Search, Edit2, Save, X, Eye, Plus } from 'lucide-react'
 import skuData from '../../data/sku.json'
-import inventoryData from '../../data/inventory.json'
 import styles from './SKUMaster.module.css'
 
 export default function SKUMaster() {
-  const { showToast, node } = useApp()
+  const { showToast, node, inventoryData } = useApp()
   const [searchQuery, setSearchQuery] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
   const [results, setResults] = useState([])
@@ -32,7 +31,7 @@ export default function SKUMaster() {
       .filter(i => i.node === targetNode)
       .map(i => i.skuCode)
     return new Set(codes)
-  }, [node, targetNode])
+  }, [inventoryData, targetNode])
 
   // Filter global catalog to only display SKUs active at this DC
   const dcSkus = useMemo(() => {
