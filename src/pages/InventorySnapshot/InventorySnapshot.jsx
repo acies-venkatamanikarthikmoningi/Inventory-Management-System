@@ -58,6 +58,59 @@ const getBucket = (item) => {
 }
 
 const CASES_PER_PALLET = 40
+const CASES_TO_EACHES = 24
+const EACHES_PER_PALLET = CASES_TO_EACHES * CASES_PER_PALLET
+
+const hashString = value => {
+  let hash = 2166136261
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return hash >>> 0
+}
+
+const randomFromSeed = (seed, salt = '') => hashString(`${seed}|${salt}`) / 4294967295
+const randomIntFromSeed = (seed, salt, min, max) => min + Math.floor(randomFromSeed(seed, salt) * (max - min + 1))
+
+const getUomSimulation = item => {
+  const seed = [
+    item.skuCode,
+    item.batch,
+    item.binCode || parseLocation(item).bin,
+    item.id,
+  ].filter(Boolean).join('|')
+  const typeRoll = randomFromSeed(seed, 'uom-type')
+
+  if (typeRoll < 0.4) {
+    const quantity = randomIntFromSeed(seed, 'each-qty', 10, 300)
+    return { type: 'Each', quantity, qtyInBaseUom: quantity }
+  }
+
+  if (typeRoll < 0.85) {
+    const quantity = randomIntFromSeed(seed, 'case-qty', 2, 25)
+    return { type: 'Case', quantity, qtyInBaseUom: quantity * CASES_TO_EACHES }
+  }
+
+  const quantity = randomIntFromSeed(seed, 'pallet-qty', 1, 2)
+  return { type: 'Pallet', quantity, qtyInBaseUom: quantity * EACHES_PER_PALLET }
+}
+
+const getUomDisplay = item => {
+  const { type } = getUomSimulation(item)
+  if (type === 'Case') return 'CASES'
+  if (type === 'Pallet') return 'PALLETS'
+  return 'EACHES'
+}
+
+const getUomBadgeClass = item => {
+  const { type } = getUomSimulation(item)
+  if (type === 'Case') return 'badge-info'
+  if (type === 'Pallet') return styles.uomPalletBadge
+  return 'badge-warning'
+}
+
+const formatPlainNumber = value => Number(value || 0).toLocaleString()
 
 const getBinTypeForBin = (binOrLocationString) => {
   const value = (binOrLocationString || '').toLowerCase()
@@ -99,6 +152,8 @@ const formatArea = (areaCode) => {
   return description ? `${areaCode} — ${description}` : areaCode
 }
 
+const getAreaDescription = areaCode => areaDescriptionByCode[areaCode] || ''
+
 const dbNodeMap = {
   'Mumbai Distribution Center': 'Mumbai Distribution Center',
   'Pune Distribution Center': 'Pune Warehouse',
@@ -114,7 +169,8 @@ const SKU_REORDER_POINTS = Object.fromEntries(
 const ALL_COLUMNS = [
   { id: 'skuCode',        label: 'SKU Name' },
   { id: 'skuName',        label: 'SKU Description' },
-  { id: 'area',           label: 'Area' },
+  { id: 'areaCode',       label: 'Area Code' },
+  { id: 'areaDescription', label: 'Description' },
   { id: 'zone',           label: 'Zone' },
   { id: 'bin',            label: 'Bin' },
   { id: 'batch',          label: 'Batch' },
@@ -123,7 +179,9 @@ const ALL_COLUMNS = [
   { id: 'shelfLife',      label: 'Shelf Life' },
   { id: 'classification', label: 'Classification' },
   { id: 'bucket',         label: 'Bucket' },
-  { id: 'availableQty',   label: 'Available Inventory Position (Available IP)' },
+  { id: 'quantity',       label: 'Quantity' },
+  { id: 'uom',            label: 'UOM' },
+  { id: 'qtyBaseUom',     label: 'Qty in Base UOM' },
 ]
 
 /* ── Helpers ─────────────────────────────────────────── */
@@ -155,14 +213,17 @@ export default function InventorySnapshot() {
     skuName: true,
     bin: true,
     zone: true,
-    area: true,
+    areaCode: true,
+    areaDescription: true,
     batch: true,
     mfgDate: true,
     expiry: true,
     shelfLife: true,
     classification: true,
     bucket: true,
-    availableQty: true,
+    quantity: true,
+    uom: true,
+    qtyBaseUom: true,
   })
   const [sort, setSort]               = useState({ col: 'skuCode', dir: 'asc' })
   const [page, setPage]               = useState(1)
@@ -271,12 +332,27 @@ export default function InventorySnapshot() {
     const arr = [...filtered]
     arr.sort((a, b) => {
       let va = a[sort.col], vb = b[sort.col]
-      if (sort.col === 'bin' || sort.col === 'zone' || sort.col === 'area') {
+      if (sort.col === 'bin' || sort.col === 'zone') {
         va = parseLocation(a)[sort.col]
         vb = parseLocation(b)[sort.col]
+      } else if (sort.col === 'areaCode') {
+        va = parseLocation(a).area
+        vb = parseLocation(b).area
+      } else if (sort.col === 'areaDescription') {
+        va = getAreaDescription(parseLocation(a).area)
+        vb = getAreaDescription(parseLocation(b).area)
       } else if (sort.col === 'bucket') {
         va = getBucket(a)
         vb = getBucket(b)
+      } else if (sort.col === 'quantity') {
+        va = getUomSimulation(a).quantity
+        vb = getUomSimulation(b).quantity
+      } else if (sort.col === 'uom') {
+        va = getUomDisplay(a)
+        vb = getUomDisplay(b)
+      } else if (sort.col === 'qtyBaseUom') {
+        va = getUomSimulation(a).qtyInBaseUom
+        vb = getUomSimulation(b).qtyInBaseUom
       }
       
       if (typeof va === 'string') va = va.toLowerCase()
@@ -473,8 +549,9 @@ export default function InventorySnapshot() {
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>Select Visible Columns</span>
             <button className="btn btn-ghost btn-xs" style={{ padding: '2px 6px', fontSize: 11 }} onClick={() => {
               setVisibleCols({
-                skuCode: true, skuName: true, bin: true, zone: true, area: true, batch: true,
-                mfgDate: true, expiry: true, shelfLife: true, classification: true, bucket: true, availableQty: true
+                skuCode: true, skuName: true, bin: true, zone: true, areaCode: true, areaDescription: true, batch: true,
+                mfgDate: true, expiry: true, shelfLife: true, classification: true, bucket: true,
+                quantity: true, uom: true, qtyBaseUom: true
               })
             }}>
               Reset Columns
@@ -525,6 +602,7 @@ export default function InventorySnapshot() {
                 const days = daysUntil(item.expiry)
                 const locParts = parseLocation(item)
                 const bucketVal = getBucket(item)
+                const uomSim = getUomSimulation(item)
                 
                 return (
                   <tr key={item.id} className={styles.tableRow} onClick={() => openDrawer(item)}>
@@ -539,15 +617,11 @@ export default function InventorySnapshot() {
                         <div className="text-xs text-muted">{item.brand}</div>
                       </td>
                     )}
-                    {visibleCols.area && (
-                      <td className="text-sm">
-                        <Link
-                          to={`/app/locations?zone=${encodeURIComponent(locParts.zone)}&area=${encodeURIComponent(locParts.area)}`}
-                          style={{ color: 'var(--color-primary-light)', fontWeight: 500, textDecoration: 'underline' }}
-                        >
-                          {formatArea(locParts.area)}
-                        </Link>
-                      </td>
+                    {visibleCols.areaCode && (
+                      <td className="text-sm">{locParts.area}</td>
+                    )}
+                    {visibleCols.areaDescription && (
+                      <td className="text-sm">{getAreaDescription(locParts.area)}</td>
                     )}
                     {visibleCols.zone && (
                       <td className="text-sm">
@@ -599,8 +673,20 @@ export default function InventorySnapshot() {
                         }`}>{bucketVal}</span>
                       </td>
                     )}
-                    {visibleCols.availableQty && (
-                      <td><strong>{formatQtyForBin(item.availableQty, item.location, item.binTypeCode)}</strong></td>
+                    {visibleCols.quantity && (
+                      <td className="text-sm" style={{ textAlign: 'right' }}>
+                        {formatPlainNumber(uomSim.quantity)}
+                      </td>
+                    )}
+                    {visibleCols.uom && (
+                      <td>
+                        <span className={`badge ${getUomBadgeClass(item)}`}>{getUomDisplay(item)}</span>
+                      </td>
+                    )}
+                    {visibleCols.qtyBaseUom && (
+                      <td className="text-sm" style={{ textAlign: 'right' }}>
+                        {formatPlainNumber(uomSim.qtyInBaseUom)}
+                      </td>
                     )}
                     <td onClick={e=>e.stopPropagation()}>
                       <button className="btn btn-ghost btn-sm" onClick={() => openDrawer(item)}>

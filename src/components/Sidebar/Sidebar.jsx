@@ -23,7 +23,7 @@ const NAV_ITEMS = [
 ]
 
 export default function Sidebar() {
-  const { node, logout, sidebarCollapsed, setSidebarCollapsed, showToast } = useApp()
+  const { node, logout, sidebarCollapsed, setSidebarCollapsed } = useApp()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -63,17 +63,12 @@ export default function Sidebar() {
           disabled ? (
             <button
               key={label}
+              type="button"
               className={`${styles.navItem} ${styles.navItemDisabled}`}
-              onClick={() => showToast('Coming soon', 'info')}
-              title={sidebarCollapsed ? `${label} - Coming soon` : undefined}
+              disabled
             >
               <Icon size={18} className={styles.navIcon} />
-              {!sidebarCollapsed && (
-                <>
-                  <span className={styles.navLabel}>{label}</span>
-                  <span className={styles.comingSoonBadge}>Coming soon</span>
-                </>
-              )}
+              {!sidebarCollapsed && <span className={styles.navLabel}>{label}</span>}
             </button>
           ) : (
             <NavLink
