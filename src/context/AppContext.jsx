@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import baseInventoryData from '../data/inventory.json'
+import inboundSeed from '../data/inbound.json'
+import replenishmentConfigSeed from '../data/replenishmentConfig.json'
 
 /* ── App Context: Auth + Theme + Toast + Node ─────────────── */
 const AppContext = createContext(null)
@@ -18,6 +20,8 @@ export function AppProvider({ children }) {
   const [toasts, setToasts]   = useState([])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [inventoryData, setInventoryData] = useState(baseInventoryData)
+  const [asns, setAsns] = useState(inboundSeed)
+  const [replenishmentConfig, setReplenishmentConfig] = useState(replenishmentConfigSeed)
 
   const handleSetNode = useCallback((selectedNode) => {
     setNode(selectedNode)
@@ -84,6 +88,8 @@ export function AppProvider({ children }) {
       toasts, showToast, removeToast,
       sidebarCollapsed, setSidebarCollapsed,
       inventoryData, setInventoryData,
+      asns, setAsns,
+      replenishmentConfig, setReplenishmentConfig,
     }}>
       {children}
     </AppContext.Provider>

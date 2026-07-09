@@ -1,7 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
-import { ArrowRight, CheckCircle, ChevronDown, ChevronUp, RefreshCw, Search } from 'lucide-react'
+import { ArrowRight, CheckCircle, ChevronDown, ChevronUp, RefreshCw, Save, Search, X } from 'lucide-react'
+import skuData from '../../data/sku.json'
+import { CASES_TO_EACHES, EACHES_PER_PALLET, getDriftUomDisplay, getInventoryUomSimulation } from '../../utils/uomDisplay'
+import { normalizeNode } from '../../utils/replenishmentStatus'
 import styles from './Replenishment.module.css'
 
 const PARAMETER_DRIFT = [
@@ -91,19 +94,130 @@ const PARAMETER_DRIFT = [
   },
 ]
 
+const TABS = [
+  { id: 'config', label: 'Replenishment' },
+  { id: 'auto', label: 'Auto-Replenishment' },
+  { id: 'drift', label: 'Parameter Drift' },
+]
+
+const metricCodes = { 'Safety Stock': 'SS', 'Reorder Point': 'ROP', 'Maximum Stock Level': 'MAX' }
+const formatNumber = value => Number(value || 0).toLocaleString('en-IN')
+const getDriftPriority = item => item.driftDirection === 'down' ? 'Medium' : 'High'
+const getDriftBadgeClass = item => item.driftDirection === 'down' ? 'badge-warning' : 'badge-danger'
+const ACTIVE_ASN_STATUSES = new Set(['Pending', 'Received (GRN Submitted)'])
+const APPROVED_STATUS = 'Approved — Sent to Inbound'
+
+const convertBaseEachesToUom = (baseEaches, uom) => {
+  if (uom === 'Pallet') return baseEaches / EACHES_PER_PALLET
+  if (uom === 'Case') return baseEaches / CASES_TO_EACHES
+  return baseEaches
+}
+
+const formatQty = value => {
+  return Math.round(Number(value || 0)).toLocaleString('en-IN')
+}
+
+const hasActiveAsn = (asns, row, node) => asns.some(asn => {
+  if (!ACTIVE_ASN_STATUSES.has(asn.status)) return false
+  if (asn.node && normalizeNode(asn.node) !== normalizeNode(node)) return false
+  return asn.lines?.some(line => line.skuCode === row.skuCode)
+})
+
+const nextAsnId = asns => {
+  const max = asns.reduce((acc, asn) => Math.max(acc, Number(String(asn.id).replace('ASN-', '')) || 0), 1000)
+  return `ASN-${max + 1}`
+}
+
+const buildAsn = (row, node, id) => ({
+  id,
+  source: 'auto',
+  status: 'Pending',
+  node,
+  createdAt: new Date().toISOString(),
+  lines: [{
+    skuCode: row.skuCode,
+    skuName: row.skuName,
+    uom: row.uom,
+    batch: `BCH-AUTO-${id.replace('ASN-', '')}-${row.skuCode}`,
+    mfgDate: new Date().toISOString().slice(0, 10),
+    qty: row.suggestedQty,
+  }],
+  receivedAt: null,
+  grnNumber: null,
+})
+
 export default function Replenishment() {
-  const { showToast } = useApp()
+  const { showToast, node, inventoryData, asns, setAsns, replenishmentConfig, setReplenishmentConfig } = useApp()
   const navigate = useNavigate()
+  const activeNode = normalizeNode(node)
+  const [activeTab, setActiveTab] = useState('config')
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('All')
   const [expanded, setExpanded] = useState(new Set())
+  const [editingKey, setEditingKey] = useState('')
+  const [editDraft, setEditDraft] = useState({ min: '', max: '' })
+  const [approved, setApproved] = useState(new Set())
+  const [autoCreated, setAutoCreated] = useState(new Set())
 
-  const metricCodes = { 'Safety Stock':'SS', 'Reorder Point':'ROP', 'Maximum Stock Level':'MAX' }
-  const formatNumber = value => Number(value).toLocaleString('en-IN')
-  const getDriftPriority = item => item.driftDirection === 'down' ? 'Medium' : 'High'
-  const getDriftBadgeClass = item => item.driftDirection === 'down' ? 'badge-warning' : 'badge-danger'
+  const skuMap = useMemo(() => new Map(skuData.map(sku => [sku.skuCode, sku])), [])
 
-  const filtered = useMemo(() => {
+  const inventoryBaseQtyBySku = useMemo(() => {
+    const totals = new Map()
+    inventoryData
+      .filter(item => item.node === activeNode)
+      .forEach(item => {
+        const simulation = getInventoryUomSimulation(item)
+        totals.set(item.skuCode, (totals.get(item.skuCode) || 0) + Number(simulation.qtyInBaseUom || 0))
+      })
+    return totals
+  }, [activeNode, inventoryData])
+
+  const configRows = useMemo(() => replenishmentConfig.map(config => ({
+    key: config.skuCode,
+    skuCode: config.skuCode,
+    skuName: skuMap.get(config.skuCode)?.skuName || config.skuCode,
+    node: config.node,
+    minQty: config.min,
+    maxQty: config.max,
+    uom: config.uom,
+    autoApprove: config.autoApprove,
+  })), [replenishmentConfig, skuMap])
+
+  const filteredConfigRows = useMemo(() => {
+    const q = search.toLowerCase()
+    if (!q) return configRows
+    return configRows.filter(row =>
+      row.skuCode.toLowerCase().includes(q) ||
+      row.skuName.toLowerCase().includes(q) ||
+      row.uom.toLowerCase().includes(q)
+    )
+  }, [configRows, search])
+
+  const breachRows = useMemo(() => configRows
+    .map(row => {
+      const baseQty = inventoryBaseQtyBySku.get(row.skuCode) || 0
+      const currentQty = convertBaseEachesToUom(baseQty, row.uom)
+      return {
+        ...row,
+        currentQty,
+        hasAsn: hasActiveAsn(asns, row, activeNode),
+        suggestedQty: Math.max(1, Math.ceil(Number(row.maxQty || 0) - currentQty)),
+        belowMin: currentQty < Number(row.minQty || 0),
+      }
+    })
+    .filter(row => row.belowMin), [activeNode, asns, configRows, inventoryBaseQtyBySku])
+
+  const visibleBreachRows = useMemo(() => {
+    const q = search.toLowerCase()
+    if (!q) return breachRows
+    return breachRows.filter(row =>
+      row.skuCode.toLowerCase().includes(q) ||
+      row.skuName.toLowerCase().includes(q) ||
+      row.uom.toLowerCase().includes(q)
+    )
+  }, [breachRows, search])
+
+  const driftRows = useMemo(() => {
     const q = search.toLowerCase()
     let data = PARAMETER_DRIFT
     if (q) data = data.filter(i =>
@@ -113,8 +227,57 @@ export default function Replenishment() {
       i.node.toLowerCase().includes(q)
     )
     if (priorityFilter !== 'All') data = data.filter(i => getDriftPriority(i) === priorityFilter)
-    return [...data].sort((a,b) => Math.abs(b.driftPct) - Math.abs(a.driftPct))
+    return [...data].sort((a, b) => Math.abs(b.driftPct) - Math.abs(a.driftPct))
   }, [search, priorityFilter])
+
+  useEffect(() => {
+    const rowsToCreate = breachRows.filter(row => row.autoApprove && !row.hasAsn && !autoCreated.has(row.key))
+    if (rowsToCreate.length === 0) return
+
+    setAsns(prev => {
+      let next = [...prev]
+      rowsToCreate.forEach(row => {
+        const id = nextAsnId(next)
+        next = [buildAsn(row, activeNode, id), ...next]
+      })
+      return next
+    })
+    setAutoCreated(prev => new Set([...prev, ...rowsToCreate.map(row => row.key)]))
+    showToast(`Auto-Triggered ASN created for ${rowsToCreate.length} replenishment breach${rowsToCreate.length === 1 ? '' : 'es'}`, 'success')
+  }, [activeNode, autoCreated, breachRows, setAsns, showToast])
+
+  const startEdit = row => {
+    setEditingKey(row.key)
+    setEditDraft({ min: row.minQty, max: row.maxQty, uom: row.uom })
+  }
+
+  const saveConfig = row => {
+    const min = Math.max(0, Math.round(Number(editDraft.min || 0)))
+    const max = Math.max(min, Math.round(Number(editDraft.max || min)))
+    setReplenishmentConfig(prev => prev.map(config => {
+      if (config.skuCode !== row.skuCode) return config
+      return {
+        ...config,
+        min,
+        max,
+        uom: editDraft.uom || row.uom,
+      }
+    }))
+    setEditingKey('')
+    showToast(`${row.skuCode} replenishment settings updated`, 'success')
+  }
+
+  const toggleAutoApprove = skuCode => {
+    setReplenishmentConfig(prev => prev.map(config =>
+      config.skuCode === skuCode ? { ...config, autoApprove: !config.autoApprove } : config
+    ))
+  }
+
+  const createReplenishmentAsn = row => {
+    setAsns(prev => [buildAsn(row, activeNode, nextAsnId(prev)), ...prev])
+    setApproved(prev => new Set(prev).add(row.key))
+    showToast(`ASN created for ${row.skuCode}`, 'success')
+  }
 
   const toggleExpand = id => {
     setExpanded(prev => {
@@ -128,123 +291,297 @@ export default function Replenishment() {
     navigate(`/app/sku-explore?sku=${encodeURIComponent(skuCode)}`)
   }
 
+  const getUomBadgeClass = type => {
+    if (type === 'Case') return 'badge-info'
+    if (type === 'Pallet') return styles.uomPalletBadge
+    return 'badge-warning'
+  }
+
+  const DriftValue = ({ value }) => (
+    <div className={styles.driftValue}>
+      <div className={styles.driftValueMain}>
+        <strong>{formatNumber(value.quantity)}</strong>
+        <span className={`badge ${getUomBadgeClass(value.type)}`}>{value.label}</span>
+      </div>
+      <div className={styles.baseUomLine}>({formatNumber(value.qtyInBaseUom)} eaches)</div>
+    </div>
+  )
+
   return (
     <div>
       <div className="page-header">
         <div className="page-header-left">
           <h2>Replenishment</h2>
-          <p>Manage Safety Stock, Reorder Point, and Maximum Stock parameters</p>
+          <p>Manage Safety Stock, Reorder Point, and Maximum Stock parameters, and drift monitoring</p>
         </div>
+      </div>
+
+      <div className={styles.tabStrip}>
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabButtonActive : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className={`card ${styles.filterBar}`}>
         <div className={styles.searchWrap}>
-          <Search size={15} style={{ color:'var(--color-text-light)', flexShrink:0 }}/>
+          <Search size={15} style={{ color: 'var(--color-text-light)', flexShrink: 0 }}/>
           <input
             className={styles.searchInput}
-            placeholder="Search SKU, code, metric, node..."
+            placeholder="Search SKU, code, UOM, metric..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <span className="text-sm text-muted">Priority:</span>
-          <select className="form-select" style={{ width:'auto' }} value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)}>
-            {['All','High','Medium'].map(o => <option key={o}>{o}</option>)}
-          </select>
-        </div>
-      </div>
-
-      <div className={styles.insightList}>
-        {filtered.length === 0 && (
-          <div className="empty-state card">
-            <CheckCircle size={40}/><h4>No parameter drift found</h4><p>Try changing your SKU or priority filter.</p>
+        {activeTab === 'drift' && (
+          <div className={styles.filterSelect}>
+            <span className="text-sm text-muted">Priority:</span>
+            <select className="form-select" style={{ width: 'auto' }} value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)}>
+              {['All', 'High', 'Medium'].map(o => <option key={o}>{o}</option>)}
+            </select>
           </div>
         )}
-        {filtered.map(item => {
-          const isExpanded = expanded.has(item.id)
-          return (
-            <div key={item.id} className={`card ${styles.driftCard}`}>
-              <div className={styles.insightHeader}>
-                <div className={styles.insightTitle}>
-                  <div className={styles.insightIconWrap} style={{ background:'var(--color-info-light)', color:'var(--color-primary-light)' }}>
-                    <RefreshCw size={16}/>
+      </div>
+
+      {activeTab === 'config' && (
+        <div className={`card ${styles.tableCard}`}>
+          <div className={styles.tableHeader}>
+            <span className="card-title">Manual Min/Max Configuration</span>
+            <span className="badge badge-info">{filteredConfigRows.length} rows</span>
+          </div>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>SKU Code</th>
+                  <th>SKU Name</th>
+                  <th>Min Qty</th>
+                  <th>Max Qty</th>
+                  <th>UOM</th>
+                  <th>Auto-Approve</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredConfigRows.map(row => {
+                  const isEditing = editingKey === row.key
+                  return (
+                    <tr key={row.key}>
+                      <td>
+                        <button className={styles.skuLink} onClick={() => openSku(row.skuCode)}>
+                          <code>{row.skuCode}</code>
+                        </button>
+                      </td>
+                      <td>
+                        <button className={styles.skuLink} onClick={() => openSku(row.skuCode)}>
+                          <span className={styles.insightType}>{row.skuName}</span>
+                        </button>
+                      </td>
+                      <td>{isEditing ? <input className={styles.qtyInput} type="number" min="0" step="1" value={editDraft.min} onChange={e => setEditDraft(prev => ({ ...prev, min: e.target.value }))}/> : formatQty(row.minQty)}</td>
+                      <td>{isEditing ? <input className={styles.qtyInput} type="number" min="0" step="1" value={editDraft.max} onChange={e => setEditDraft(prev => ({ ...prev, max: e.target.value }))}/> : formatQty(row.maxQty)}</td>
+                      <td>
+                        {isEditing ? (
+                          <select className="form-select" value={editDraft.uom} onChange={e => setEditDraft(prev => ({ ...prev, uom: e.target.value }))}>
+                            {['Each', 'Case', 'Pallet'].map(uom => <option key={uom}>{uom}</option>)}
+                          </select>
+                        ) : row.uom}
+                      </td>
+                      <td>
+                        <button className={`${styles.toggleSwitch} ${row.autoApprove ? styles.toggleSwitchOn : ''}`} onClick={() => toggleAutoApprove(row.skuCode)} aria-label="Toggle auto approval">
+                          <span />
+                        </button>
+                      </td>
+                      <td>
+                        {isEditing ? (
+                          <div className={styles.rowActions}>
+                            <button className="btn btn-primary btn-sm" onClick={() => saveConfig(row)}><Save size={13}/> Save</button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => setEditingKey('')}><X size={13}/> Cancel</button>
+                          </div>
+                        ) : (
+                          <button className="btn btn-secondary btn-sm" onClick={() => startEdit(row)}>Edit</button>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'auto' && (
+        <div className={`card ${styles.tableCard}`}>
+          <div className={styles.tableHeader}>
+            <span className="card-title">Auto-Replenishment Queue</span>
+            <span className="badge badge-warning">{visibleBreachRows.length} below min</span>
+          </div>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>SKU Code</th>
+                  <th>SKU Name</th>
+                  <th>Current Qty</th>
+                  <th>Min Qty</th>
+                  <th>Max Qty</th>
+                  <th>UOM</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleBreachRows.map(row => {
+                  const wasApproved = approved.has(row.key)
+                  const status = wasApproved
+                    ? APPROVED_STATUS
+                    : (row.autoApprove || row.hasAsn ? 'Auto-Triggered' : 'Pending Approval')
+                  const statusClass = status === APPROVED_STATUS
+                    ? 'badge-success'
+                    : status === 'Auto-Triggered'
+                      ? 'badge-warning'
+                      : 'badge-default'
+                  return (
+                    <tr key={row.key}>
+                      <td>
+                        <button className={styles.skuLink} onClick={() => openSku(row.skuCode)}>
+                          <code>{row.skuCode}</code>
+                        </button>
+                      </td>
+                      <td>
+                        <button className={styles.skuLink} onClick={() => openSku(row.skuCode)}>
+                          <span className={styles.insightType}>{row.skuName}</span>
+                        </button>
+                      </td>
+                      <td>{formatQty(row.currentQty)}</td>
+                      <td>{formatQty(row.minQty)}</td>
+                      <td>{formatQty(row.maxQty)}</td>
+                      <td>{row.uom}</td>
+                      <td><span className={`badge ${statusClass}`}>{status}</span></td>
+                      <td>
+                        <div className={styles.rowActions}>
+                          {status === 'Pending Approval' && (
+                            <button className="btn btn-primary btn-sm" onClick={() => createReplenishmentAsn(row)}>
+                              Approve
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {visibleBreachRows.length === 0 && (
+                  <tr>
+                    <td colSpan={8}>
+                      <div className="empty-state"><CheckCircle size={32}/><p>No below-min replenishment breaches for {activeNode}.</p></div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'drift' && (
+        <div className={styles.insightList}>
+          {driftRows.length === 0 && (
+            <div className="empty-state card">
+              <CheckCircle size={40}/><h4>No parameter drift found</h4><p>Try changing your SKU or priority filter.</p>
+            </div>
+          )}
+          {driftRows.map(item => {
+            const isExpanded = expanded.has(item.id)
+            const currentValue = getDriftUomDisplay(item, item.erpValue, 'current')
+            const newValue = getDriftUomDisplay(item, item.platformValue, 'new')
+            return (
+              <div key={item.id} className={`card ${styles.driftCard}`}>
+                <div className={styles.insightHeader}>
+                  <div className={styles.insightTitle}>
+                    <div className={styles.insightIconWrap} style={{ background: 'var(--color-info-light)', color: 'var(--color-primary-light)' }}>
+                      <RefreshCw size={16}/>
+                    </div>
+                    <div>
+                      <button className={styles.skuLink} onClick={() => openSku(item.skuCode)}>
+                        <span className={styles.insightType}>{item.sku}</span>
+                        <code>{item.skuCode}</code>
+                      </button>
+                      <div className={styles.nodeText}>{item.node}</div>
+                    </div>
                   </div>
-                  <div>
-                    <button className={styles.skuLink} onClick={() => openSku(item.skuCode)}>
-                      <span className={styles.insightType}>{item.sku}</span>
-                      <code>{item.skuCode}</code>
-                    </button>
-                    <div className={styles.nodeText}>{item.node}</div>
+                  <div className={styles.insightMeta}>
+                    <span className="badge badge-primary">{metricCodes[item.metric]}</span>
+                    <span className={`badge ${getDriftBadgeClass(item)} ${styles.driftBadge}`}>
+                      {item.driftPct > 0 ? '+' : ''}{item.driftPct.toFixed(1)}%
+                    </span>
+                    <span className="badge badge-default">Drifting {item.driftingSinceDays}d</span>
                   </div>
                 </div>
-                <div className={styles.insightMeta}>
-                  <span className="badge badge-primary">{metricCodes[item.metric]}</span>
-                  <span className={`badge ${getDriftBadgeClass(item)} ${styles.driftBadge}`}>
-                    {item.driftPct > 0 ? '+' : ''}{item.driftPct.toFixed(1)}%
-                  </span>
-                  <span className="badge badge-default">Drifting {item.driftingSinceDays}d</span>
+
+                <div className={styles.driftCompare}>
+                  <DriftValue value={currentValue} />
+                  <ArrowRight size={22} />
+                  <DriftValue value={newValue} />
                 </div>
-              </div>
 
-              <div className={styles.driftCompare}>
-                <strong>{formatNumber(item.erpValue)} {item.unit}</strong>
-                <ArrowRight size={22} />
-                <strong>{formatNumber(item.platformValue)} {item.unit}</strong>
-              </div>
+                <button className={styles.evidenceToggle} onClick={() => toggleExpand(item.id)}>
+                  <span>How we identified this</span>
+                  {isExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                </button>
 
-              <button className={styles.evidenceToggle} onClick={() => toggleExpand(item.id)}>
-                <span>How we identified this</span>
-                {isExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
-              </button>
-
-              {isExpanded && (
-                <div className={styles.expandSection}>
-                  <div className={styles.evidenceSummary}>
-                    {item.poCount} purchase orders reviewed over {item.poWindowWeeks} weeks
+                {isExpanded && (
+                  <div className={styles.expandSection}>
+                    <div className={styles.evidenceSummary}>
+                      {item.poCount} purchase orders reviewed over {item.poWindowWeeks} weeks
+                    </div>
+                    <div className={styles.evidenceTable}>
+                      {item.evidence.map(row => (
+                        <div key={row.label} className={styles.evidenceRow}>
+                          <div className={styles.evidenceLabel}>{row.label}</div>
+                          <div className={styles.evidenceFromTo}>{row.from} -&gt; {row.to}</div>
+                          <div className={styles.evidenceNote}>{row.note}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className={styles.evidenceTable}>
-                    {item.evidence.map(row => (
-                      <div key={row.label} className={styles.evidenceRow}>
-                        <div className={styles.evidenceLabel}>{row.label}</div>
-                        <div className={styles.evidenceFromTo}>{row.from} -&gt; {row.to}</div>
-                        <div className={styles.evidenceNote}>{row.note}</div>
+                )}
+
+                <p className={styles.explanation}>{item.explanation}</p>
+
+                <div className={styles.impactPanel}>
+                  <h4>If you update to {formatNumber(item.platformValue)} {item.unit}</h4>
+                  <div className={styles.impactGrid}>
+                    {item.impact.map(row => (
+                      <div key={row.label} className={styles.impactLine}>
+                        <span>{row.label}</span>
+                        <strong>{row.value}</strong>
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
 
-              <p className={styles.explanation}>{item.explanation}</p>
-
-              <div className={styles.impactPanel}>
-                <h4>If you update to {formatNumber(item.platformValue)} {item.unit}</h4>
-                <div className={styles.impactGrid}>
-                  {item.impact.map(row => (
-                    <div key={row.label} className={styles.impactLine}>
-                      <span>{row.label}</span>
-                      <strong>{row.value}</strong>
-                    </div>
-                  ))}
+                <div className={styles.insightActions}>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => showToast(`${item.sku} ${item.metric} updated to ${item.platformValue} ${item.unit}`, 'success')}
+                  >
+                    {item.actionLabel}
+                  </button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => showToast('Calculation details coming soon', 'info')}>
+                    View Calculation
+                  </button>
+                  <span className="text-xs text-muted" style={{ marginLeft: 'auto' }}>{item.id}</span>
                 </div>
               </div>
-
-              <div className={styles.insightActions}>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={() => showToast(`${item.sku} ${item.metric} updated to ${item.platformValue} ${item.unit}`, 'success')}
-                >
-                  {item.actionLabel}
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => showToast('Calculation details coming soon', 'info')}>
-                  View Calculation
-                </button>
-                <span className="text-xs text-muted" style={{ marginLeft:'auto' }}>{item.id}</span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
