@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { Search, Edit2, Save, X, Eye, Plus } from 'lucide-react'
 import skuData from '../../data/sku.json'
@@ -6,6 +7,7 @@ import styles from './SKUMaster.module.css'
 
 export default function SKUMaster() {
   const { showToast, node, inventoryData } = useApp()
+  const [searchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
   const [results, setResults] = useState([])
@@ -37,6 +39,22 @@ export default function SKUMaster() {
   const dcSkus = useMemo(() => {
     return skuData.filter(s => activeSkuCodes.has(s.skuCode))
   }, [activeSkuCodes])
+
+  useEffect(() => {
+    const skuParam = searchParams.get('sku')?.trim()
+    if (!skuParam) return
+
+    const q = skuParam.toLowerCase()
+    setSearchQuery(skuParam)
+    setResults(dcSkus.filter(s =>
+      s.skuCode.toLowerCase().includes(q) ||
+      s.skuName.toLowerCase().includes(q) ||
+      s.brand.toLowerCase().includes(q) ||
+      s.category.toLowerCase().includes(q)
+    ))
+    setHasSearched(true)
+    setPage(1)
+  }, [searchParams, dcSkus])
 
   const handleSearch = (e) => {
     if (e) e.preventDefault()

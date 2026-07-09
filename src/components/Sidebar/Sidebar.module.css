@@ -152,21 +152,13 @@
 
 .navItemDisabled {
   opacity: 0.58;
+  color: var(--color-sidebar-text);
+  cursor: default;
 }
 
 .navItemDisabled:hover {
-  background: rgba(255,255,255,0.04);
+  background: none;
   color: var(--color-sidebar-text);
-}
-
-.comingSoonBadge {
-  margin-left: auto;
-  padding: 2px 6px;
-  border-radius: var(--radius-full);
-  background: rgba(255,255,255,0.1);
-  color: var(--color-sidebar-text);
-  font-size: 9px;
-  font-weight: 700;
 }
 
 /* Footer */

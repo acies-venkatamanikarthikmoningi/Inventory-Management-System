@@ -307,6 +307,73 @@ export default function NodeSelection() {
     return routes
   }, [mode, selected])
 
+  const badgePositions = useMemo(() => {
+    // Group routes by source node so we can stagger routes that share
+    // an origin (this is what causes the visual clustering)
+    const bySource = {}
+    activeRoutes.forEach(route => {
+      if (!bySource[route.from]) bySource[route.from] = []
+      bySource[route.from].push(route)
+    })
+
+    const positions = {}
+    // t-values to cycle through so badges land at different points along
+    // their line instead of all sitting at the 50% midpoint
+    const T_VALUES = [0.38, 0.5, 0.62, 0.44, 0.56, 0.32, 0.68]
+
+    Object.values(bySource).forEach(routesFromSameSource => {
+      routesFromSameSource.forEach((route, idx) => {
+        const sourceNode = NODES.find(n => n.id === route.from)
+        const targetNode = NODES.find(n => n.id === route.to)
+        if (!sourceNode || !targetNode) return
+
+        const t = T_VALUES[idx % T_VALUES.length]
+        let x = sourceNode.xPct + (targetNode.xPct - sourceNode.xPct) * t
+        let y = sourceNode.yPct + (targetNode.yPct - sourceNode.yPct) * t
+
+        // Perpendicular offset so badges fan out sideways from their line,
+        // alternating sides based on index, scaled up for later indices
+        const dx = targetNode.xPct - sourceNode.xPct
+        const dy = targetNode.yPct - sourceNode.yPct
+        const len = Math.sqrt(dx * dx + dy * dy) || 1
+        const perpX = -dy / len
+        const perpY = dx / len
+        const side = idx % 2 === 0 ? 1 : -1
+        const magnitude = Math.floor(idx / 2) * 2.2 // percent units, grows per pair
+        x += perpX * side * magnitude
+        y += perpY * side * magnitude
+
+        positions[route.id] = { x, y }
+      })
+    })
+
+    // Basic collision-avoidance pass: nudge any two badges that end up
+    // within 3.5% of each other further apart along their own perpendicular
+    const ids = Object.keys(positions)
+    for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          const a = positions[ids[i]]
+          const b = positions[ids[j]]
+          const ddx = a.x - b.x
+          const ddy = a.y - b.y
+          const dist = Math.sqrt(ddx * ddx + ddy * ddy)
+          if (dist < 3.5 && dist > 0) {
+            const push = (3.5 - dist) / 2
+            const nx = ddx / dist
+            const ny = ddy / dist
+            a.x += nx * push
+            a.y += ny * push
+            b.x -= nx * push
+            b.y -= ny * push
+          }
+        }
+      }
+    }
+
+    return positions
+  }, [activeRoutes])
+
   const activeId = hovered || selected?.id
 
   // Determine if a specific route is hovered/active
@@ -442,8 +509,9 @@ export default function NodeSelection() {
                 const targetNode = NODES.find(n => n.id === route.to)
                 if (!sourceNode || !targetNode) return null
 
-                const midX = (sourceNode.xPct + targetNode.xPct) / 2
-                const midY = (sourceNode.yPct + targetNode.yPct) / 2
+                const pos = badgePositions[route.id]
+                if (!pos) return null
+
                 const isHigh = isRouteActive(route)
                 const isAnyHovered = !!hovered
 
@@ -452,8 +520,8 @@ export default function NodeSelection() {
                     key={`label-${route.id}`}
                     className={`${styles.routeBadge} ${route.type === 'dc-to-dc' ? styles.badgeTransfer : styles.badgeSource} ${isHigh ? styles.routeBadgeActive : ''}`}
                     style={{
-                      left: `${midX}%`,
-                      top: `${midY}%`,
+                      left: `${pos.x}%`,
+                      top: `${pos.y}%`,
                       opacity: isAnyHovered ? (isHigh ? 1 : 0.1) : 0.85,
                     }}
                   >

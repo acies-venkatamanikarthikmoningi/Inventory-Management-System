@@ -133,6 +133,11 @@
 
 .expiryCell { display: flex; align-items: center; gap: 5px; }
 
+.uomPalletBadge {
+  background: #EDE9FE;
+  color: #6D28D9;
+}
+
 /* Pagination */
 .paginationBar {
   display: flex;
