@@ -17,8 +17,8 @@ const NODES = [
     city: 'Noida',
     type: 'Manufacturing Plant',
     region: 'North',
-    xPct: 32.5,
-    yPct: 31.0,
+    xPct: 33.5,
+    yPct: 31.5,
     labelDir: 'right',
     kpis: {
       capacity: '500k units/mo',
@@ -33,8 +33,8 @@ const NODES = [
     city: 'Delhi',
     type: 'Manufacturing Plant',
     region: 'North',
-    xPct: 29.5,
-    yPct: 29.0,
+    xPct: 27.5,
+    yPct: 28.5,
     labelDir: 'left',
     kpis: {
       capacity: '400k units/mo',
@@ -60,23 +60,6 @@ const NODES = [
     }
   },
   // --- Distribution Centers ---
-  {
-    id: 'NOIDA-PLANT',
-    name: 'Noida Manufacturing Plant',
-    city: 'Noida (NCR)',
-    type: 'Manufacturing Plant',
-    region: 'North',
-    xPct: 31.5,
-    yPct: 31.0,
-    labelDir: 'right',
-    kpis: {
-      utilization: 91,
-      activeSKUs: 5800,
-      serviceLevel: 99.4,
-      otif: 98.2,
-      leadTime: 'Source',
-    },
-  },
   {
     id: 'MUM-DC',
     name: 'Mumbai Distribution Center',
@@ -680,10 +663,6 @@ export default function NodeSelection() {
                         <div className={styles.kpiCard}>
                           <div className={styles.kpiValue}>{selected.kpis.serviceLevel}%</div>
                           <div className={styles.kpiLabel}>Service Level</div>
-                        </div>
-                        <div className={styles.kpiCard} style={{ gridColumn: '1 / -1' }}>
-                          <div className={styles.kpiValue}>{selected.kpis.otif}%</div>
-                          <div className={styles.kpiLabel}>Delivery Performance (OTIF)</div>
                         </div>
                       </div>
                     </div>
