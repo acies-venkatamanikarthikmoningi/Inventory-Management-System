@@ -235,7 +235,7 @@ const getDCtoDCTransferLeadTime = (fromDC, toDC) => {
 }
 
 export default function NodeSelection() {
-  const { setNode } = useApp()
+  const { user, setNode } = useApp()
   const navigate = useNavigate()
 
   const [selected, setSelected] = useState(null)
@@ -245,7 +245,11 @@ export default function NodeSelection() {
   const handleContinue = () => {
     if (!selected || selected.type !== 'Distribution Center') return
     setNode(selected.name)
-    navigate('/login')
+    if (user) {
+      navigate('/app/inventory')
+    } else {
+      navigate('/login')
+    }
   }
 
   const utilizationColor = (pct) => {

@@ -217,6 +217,9 @@ export default function Header() {
                   <button className={styles.dropdownItem} onClick={() => { navigate('/app/settings'); setShowProfile(false) }}>
                     <Settings size={14} /> Preferences
                   </button>
+                  <button className={styles.dropdownItem} onClick={() => { navigate('/select-node'); setShowProfile(false) }}>
+                    <MapPin size={14} /> Switch Node
+                  </button>
                   <hr className={styles.dropdownDivider} />
                   <button className={`${styles.dropdownItem} ${styles.dangerItem}`} onClick={() => { logout(); navigate('/'); }}>
                     <LogOut size={14} /> Sign Out

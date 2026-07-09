@@ -1,0 +1,10 @@
+[
+  { "typeCode": "AISLE", "description": "General Aisle Storage", "maxVolumeM3": 1.8, "maxWeightKg": 800, "binPalletCapacity": 1, "storageHuType": "PALLET" },
+  { "typeCode": "PICKDROP", "description": "Primary Pick Drop Bin", "maxVolumeM3": 0.6, "maxWeightKg": 150, "binPalletCapacity": 0, "storageHuType": "BIN" },
+  { "typeCode": "EACHPICK", "description": "Each Pick Face", "maxVolumeM3": 0.25, "maxWeightKg": 60, "binPalletCapacity": 0, "storageHuType": "BIN" },
+  { "typeCode": "RACK2D", "description": "Double Deep Rack Storage", "maxVolumeM3": 2.4, "maxWeightKg": 1200, "binPalletCapacity": 2, "storageHuType": "PALLET" },
+  { "typeCode": "STAGE4P", "description": "Staging Area", "maxVolumeM3": 3.2, "maxWeightKg": 1600, "binPalletCapacity": 4, "storageHuType": "PALLET" },
+  { "typeCode": "BULKUNL", "description": "Unlimited Capacity Storage", "maxVolumeM3": 9999, "maxWeightKg": 9999, "binPalletCapacity": 999, "storageHuType": "BIN" },
+  { "typeCode": "DMGUNL", "description": "Damaged Goods Storage", "maxVolumeM3": 9999, "maxWeightKg": 9999, "binPalletCapacity": 999, "storageHuType": "BIN" },
+  { "typeCode": "RECVDOCK", "description": "Receiving Area", "maxVolumeM3": 3.5, "maxWeightKg": 1800, "binPalletCapacity": 6, "storageHuType": "PALLET" }
+]

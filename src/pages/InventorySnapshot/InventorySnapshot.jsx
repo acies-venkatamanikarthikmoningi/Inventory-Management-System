@@ -2,12 +2,22 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { Search, Filter, Download, ChevronUp, ChevronDown, X, Package, Layers, MapPin, Activity, Tag, Settings } from 'lucide-react'
-import baseInventoryData from '../../data/inventory.json'
+import binCapacityMaster from '../../data/binCapacityMaster.json'
+import skuMasterData from '../../data/sku.json'
 import Drawer, { DrawerSection, DetailGrid, MovementHistory } from '../../components/Drawer/Drawer'
 import styles from './InventorySnapshot.module.css'
 
 /* ── Enterprise Helpers ─────────────────────────────── */
-const parseLocation = (loc) => {
+const parseLocation = (locOrItem) => {
+  if (locOrItem && typeof locOrItem === 'object') {
+    return {
+      bin: locOrItem.binCode || locOrItem.location || '',
+      zone: locOrItem.zoneCode || 'Zone 1',
+      area: locOrItem.areaCode || 'General Storage',
+    }
+  }
+
+  const loc = locOrItem
   let bin = loc || ''
   let zone = 'Zone 1'
   let area = 'General Storage'
@@ -46,12 +56,57 @@ const getBucket = (item) => {
   return 'Good'
 }
 
+const CASES_PER_PALLET = 40
+
+const getBinTypeForBin = (binOrLocationString) => {
+  const value = (binOrLocationString || '').toLowerCase()
+  if (value.includes('fg1') || value.includes('rs1')) return 'RACK2D'
+  if (value.includes('fg2') || value.includes('rs2')) return 'AISLE'
+  if (value.includes('pk1')) return 'PICKDROP'
+  if (value.includes('pk2')) return 'EACHPICK'
+  if (value.includes('damage')) return 'DMGUNL'
+  if (value.includes('receiv')) return 'RECVDOCK'
+  if (value.includes('stage') || value.includes('staging')) return 'STAGE4P'
+  if (value.includes('bulk') || value.includes('unlimited')) return 'BULKUNL'
+  if (value.includes('each')) return 'EACHPICK'
+  if (value.includes('pick')) return 'PICKDROP'
+  if (value.includes('reserve') || value.includes('rack')) return 'RACK2D'
+  return 'AISLE'
+}
+
+const formatQtyForBin = (qty, binOrLocationString, typeCodeOverride = '') => {
+  const numericQty = Number(qty) || 0
+  const typeCode = typeCodeOverride || getBinTypeForBin(binOrLocationString)
+  const capacity = binCapacityMaster.find(record => record.typeCode === typeCode)
+  const casesDisplay = numericQty.toLocaleString()
+
+  if (capacity?.storageHuType === 'PALLET' && capacity.binPalletCapacity > 0) {
+    return `${(numericQty / CASES_PER_PALLET).toFixed(1)} pallets (${casesDisplay} cases)`
+  }
+
+  return `${casesDisplay} cases`
+}
+
+const uniqueSorted = values => [...new Set(values.filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)))
+
+const dbNodeMap = {
+  'Mumbai Distribution Center': 'Mumbai Distribution Center',
+  'Pune Distribution Center': 'Pune Warehouse',
+  'Hyderabad Distribution Center': 'Hyderabad Plant',
+  'Bangalore Distribution Center': 'Bangalore Distribution Center',
+  'Chennai Distribution Center': 'Chennai Distribution Center',
+}
+
+const SKU_REORDER_POINTS = Object.fromEntries(
+  skuMasterData.map(sku => [sku.skuCode, sku.reorderPoint || 0])
+)
+
 const ALL_COLUMNS = [
   { id: 'skuCode',        label: 'SKU Name' },
   { id: 'skuName',        label: 'SKU Description' },
-  { id: 'bin',            label: 'Bin' },
-  { id: 'zone',           label: 'Zone' },
   { id: 'area',           label: 'Area' },
+  { id: 'zone',           label: 'Zone' },
+  { id: 'bin',            label: 'Bin' },
   { id: 'batch',          label: 'Batch' },
   { id: 'mfgDate',        label: 'Manufacturing Date' },
   { id: 'expiry',         label: 'Expiry Date' },
@@ -65,26 +120,17 @@ const ALL_COLUMNS = [
 const today    = new Date()
 const daysUntil = d => Math.ceil((new Date(d) - today) / 86400000)
 
-const statusClass = s => ({
-  Healthy:  'badge-success',
-  Low:      'badge-warning',
-  Critical: 'badge-danger',
-}[s] || 'badge-default')
-
 const classificationClass = c => ({
   'Fast Moving':   'badge-success',
   'Medium Moving': 'badge-warning',
   'Slow Moving':   'badge-info',
 }[c] || 'badge-default')
 
-const CATEGORIES  = [...new Set(baseInventoryData.map(i => i.category))]
-const BRANDS      = [...new Set(baseInventoryData.map(i => i.brand))]
-const NODES       = [...new Set(baseInventoryData.map(i => i.node))]
 const PAGE_SIZES  = [10, 25, 50]
 
 const EMPTY_FILTERS = {
-  category:'', brand:'', node:'', status:'',
-  lowStock: false, nearExpiry: false, damaged: false,
+  sku:'', area:'', zone:'', bin:'', classification:'', bucket:'',
+  lowStock: false, nearExpiry: false,
   expiryFrom: '', expiryTo: '',
 }
 
@@ -118,25 +164,75 @@ export default function InventorySnapshot() {
     setVisibleCols(prev => ({ ...prev, [colId]: !prev[colId] }))
   }
 
+  const scopedData = useMemo(() => {
+    const targetNode = dbNodeMap[node] || node
+    if (!targetNode) return inventoryData
+    return inventoryData.filter(i => i.node === targetNode)
+  }, [inventoryData, node])
+
+  const filterOptions = useMemo(() => {
+    const areaRows = filters.area
+      ? scopedData.filter(i => parseLocation(i).area === filters.area)
+      : scopedData
+    const binRows = filters.zone
+      ? areaRows.filter(i => parseLocation(i).zone === filters.zone)
+      : areaRows
+
+    return {
+      skus: uniqueSorted(scopedData.map(i => i.skuName)),
+      areas: uniqueSorted(scopedData.map(i => parseLocation(i).area)),
+      zones: uniqueSorted(areaRows.map(i => parseLocation(i).zone)),
+      bins: uniqueSorted(binRows.map(i => parseLocation(i).bin)),
+      classifications: uniqueSorted(scopedData.map(i => i.classification)),
+      buckets: uniqueSorted(scopedData.map(i => getBucket(i))),
+    }
+  }, [scopedData, filters.area, filters.zone])
+
+  const updateFilter = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }))
+    setPage(1)
+  }
+
+  const handleAreaChange = (area) => {
+    setFilters(prev => {
+      const areaRows = area
+        ? scopedData.filter(i => parseLocation(i).area === area)
+        : scopedData
+      const zone = prev.zone && areaRows.some(i => parseLocation(i).zone === prev.zone) ? prev.zone : ''
+      const zoneRows = zone
+        ? areaRows.filter(i => parseLocation(i).zone === zone)
+        : areaRows
+      const bin = prev.bin && zoneRows.some(i => parseLocation(i).bin === prev.bin) ? prev.bin : ''
+      return { ...prev, area, zone, bin }
+    })
+    setPage(1)
+  }
+
+  const handleZoneChange = (zone) => {
+    setFilters(prev => {
+      const areaRows = prev.area
+        ? scopedData.filter(i => parseLocation(i).area === prev.area)
+        : scopedData
+      const zoneRows = zone
+        ? areaRows.filter(i => parseLocation(i).zone === zone)
+        : areaRows
+      const bin = prev.bin && zoneRows.some(i => parseLocation(i).bin === prev.bin) ? prev.bin : ''
+      return { ...prev, zone, bin }
+    })
+    setPage(1)
+  }
+
   /* ── Open Drawer ──────────────────────────────────── */
   const openDrawer = item => { setDrawerItem(item); setDrawerOpen(true) }
   const closeDrawer = () => setDrawerOpen(false)
 
   /* ── Filtering ─────────────────────────────────────── */
   const filtered = useMemo(() => {
-    const dbNodeMap = {
-      'Mumbai Distribution Center': 'Mumbai Distribution Center',
-      'Pune Distribution Center': 'Pune Warehouse',
-      'Hyderabad Distribution Center': 'Hyderabad Plant',
-      'Bangalore Distribution Center': 'Bangalore Distribution Center',
-      'Chennai Distribution Center': 'Chennai Distribution Center',
-    }
-    const targetNode = dbNodeMap[node] || node
-
-    let data = inventoryData
-    if (targetNode) {
-      data = data.filter(i => i.node === targetNode)
-    }
+    let data = scopedData
+    const availableBySku = scopedData.reduce((acc, item) => {
+      acc[item.skuCode] = (acc[item.skuCode] || 0) + (item.availableQty || 0)
+      return acc
+    }, {})
 
     const q = search.toLowerCase()
     if (q) data = data.filter(i =>
@@ -147,16 +243,18 @@ export default function InventorySnapshot() {
       i.brand.toLowerCase().includes(q) ||
       i.classification.toLowerCase().includes(q)
     )
-    if (filters.category) data = data.filter(i => i.category === filters.category)
-    if (filters.brand)    data = data.filter(i => i.brand    === filters.brand)
-    if (filters.status)   data = data.filter(i => i.status   === filters.status)
-    if (filters.lowStock)   data = data.filter(i => i.status === 'Low' || i.status === 'Critical')
+    if (filters.sku)      data = data.filter(i => i.skuName  === filters.sku)
+    if (filters.area)     data = data.filter(i => parseLocation(i).area === filters.area)
+    if (filters.zone)     data = data.filter(i => parseLocation(i).zone === filters.zone)
+    if (filters.bin)      data = data.filter(i => parseLocation(i).bin === filters.bin)
+    if (filters.classification) data = data.filter(i => i.classification === filters.classification)
+    if (filters.bucket)   data = data.filter(i => getBucket(i) === filters.bucket)
+    if (filters.lowStock)   data = data.filter(i => availableBySku[i.skuCode] <= (SKU_REORDER_POINTS[i.skuCode] || 0))
     if (filters.nearExpiry) data = data.filter(i => { const d = daysUntil(i.expiry); return d > 0 && d <= 90 })
-    if (filters.damaged)    data = data.filter(i => i.classification === 'Damaged')
-    if (filters.expiryFrom) data = data.filter(i => new Date(i.expiry) >= new Date(filters.expiryFrom))
-    if (filters.expiryTo)   data = data.filter(i => new Date(i.expiry) <= new Date(filters.expiryTo))
+    if (filters.expiryFrom) data = data.filter(i => new Date(`${i.expiry}T00:00:00`) >= new Date(`${filters.expiryFrom}T00:00:00`))
+    if (filters.expiryTo)   data = data.filter(i => new Date(`${i.expiry}T00:00:00`) <= new Date(`${filters.expiryTo}T00:00:00`))
     return data
-  }, [search, filters, node])
+  }, [search, filters, scopedData])
 
   /* ── Sorting ─────────────────────────────────────────── */
   const sorted = useMemo(() => {
@@ -164,8 +262,8 @@ export default function InventorySnapshot() {
     arr.sort((a, b) => {
       let va = a[sort.col], vb = b[sort.col]
       if (sort.col === 'bin' || sort.col === 'zone' || sort.col === 'area') {
-        va = parseLocation(a.location)[sort.col]
-        vb = parseLocation(b.location)[sort.col]
+        va = parseLocation(a)[sort.col]
+        vb = parseLocation(b)[sort.col]
       } else if (sort.col === 'bucket') {
         va = getBucket(a)
         vb = getBucket(b)
@@ -208,9 +306,12 @@ export default function InventorySnapshot() {
   /* ── Active filter chips ─────────────────────────────── */
   const activeChips = [
     ...(search ? [{ key:'search', label:`Search: "${search}"`, clear: () => setSearch('') }] : []),
-    ...(filters.category ? [{ key:'cat', label:`Category: ${filters.category}`, clear: () => setFilters(p=>({...p,category:''})) }] : []),
-    ...(filters.brand    ? [{ key:'br',  label:`Brand: ${filters.brand}`,        clear: () => setFilters(p=>({...p,brand:''})) }] : []),
-    ...(filters.status   ? [{ key:'st',  label:`Status: ${filters.status}`,      clear: () => setFilters(p=>({...p,status:''})) }] : []),
+    ...(filters.sku      ? [{ key:'sku', label:`SKU: ${filters.sku}`,            clear: () => setFilters(p=>({...p,sku:''})) }] : []),
+    ...(filters.area     ? [{ key:'area', label:`Area: ${filters.area}`,         clear: () => handleAreaChange('') }] : []),
+    ...(filters.zone     ? [{ key:'zone', label:`Zone: ${filters.zone}`,         clear: () => handleZoneChange('') }] : []),
+    ...(filters.bin      ? [{ key:'bin', label:`Bin: ${filters.bin}`,            clear: () => setFilters(p=>({...p,bin:''})) }] : []),
+    ...(filters.classification ? [{ key:'class', label:`Classification: ${filters.classification}`, clear: () => setFilters(p=>({...p,classification:''})) }] : []),
+    ...(filters.bucket   ? [{ key:'bucket', label:`Bucket: ${filters.bucket}`,   clear: () => setFilters(p=>({...p,bucket:''})) }] : []),
     ...(filters.lowStock   ? [{ key:'ls', label:'Low Stock Only',   clear: () => setFilters(p=>({...p,lowStock:false})) }] : []),
     ...(filters.nearExpiry ? [{ key:'ne', label:'Near Expiry Only', clear: () => setFilters(p=>({...p,nearExpiry:false})) }] : []),
     ...(filters.expiryFrom ? [{ key:'ef', label:`Expiry from ${filters.expiryFrom}`, clear: () => setFilters(p=>({...p,expiryFrom:''})) }] : []),
@@ -300,16 +401,23 @@ export default function InventorySnapshot() {
         <div className={`card ${styles.filterPanel}`}>
           <div className={styles.filterGrid}>
             {[
-              { key:'category', label:'Category', type:'select', opts:CATEGORIES },
-              { key:'brand',    label:'Brand',    type:'select', opts:BRANDS    },
-              { key:'status',   label:'Status',   type:'select', opts:['Healthy','Low','Critical'] },
+              { key:'sku',      label:'SKU',      type:'select', opts:filterOptions.skus },
+              { key:'area',     label:'Area',     type:'select', opts:filterOptions.areas },
+              { key:'zone',     label:'Zone',     type:'select', opts:filterOptions.zones },
+              { key:'bin',      label:'Bin',      type:'select', opts:filterOptions.bins },
+              { key:'classification', label:'Classification', type:'select', opts:filterOptions.classifications },
+              { key:'bucket',   label:'Bucket',   type:'select', opts:filterOptions.buckets },
             ].map(f => (
               <div key={f.key} className="form-group">
                 <label className="form-label">{f.label}</label>
                 <select
                   className="form-select"
                   value={filters[f.key]}
-                  onChange={e => { setFilters(p=>({...p,[f.key]:e.target.value})); setPage(1) }}
+                  onChange={e => {
+                    if (f.key === 'area') handleAreaChange(e.target.value)
+                    else if (f.key === 'zone') handleZoneChange(e.target.value)
+                    else updateFilter(f.key, e.target.value)
+                  }}
                 >
                   <option value="">All {f.label}s</option>
                   {f.opts.map(o=><option key={o}>{o}</option>)}
@@ -401,7 +509,7 @@ export default function InventorySnapshot() {
                 </tr>
               ) : paged.map(item => {
                 const days = daysUntil(item.expiry)
-                const locParts = parseLocation(item.location)
+                const locParts = parseLocation(item)
                 const bucketVal = getBucket(item)
                 
                 return (
@@ -417,13 +525,13 @@ export default function InventorySnapshot() {
                         <div className="text-xs text-muted">{item.brand}</div>
                       </td>
                     )}
-                    {visibleCols.bin && (
+                    {visibleCols.area && (
                       <td className="text-sm">
                         <Link
-                          to={`/app/locations?zone=${encodeURIComponent(locParts.zone)}&area=${encodeURIComponent(locParts.area)}&shelf=${encodeURIComponent(parseShelf(locParts.bin))}&bin=${encodeURIComponent(locParts.bin)}&sku=${encodeURIComponent(item.skuCode)}`}
+                          to={`/app/locations?zone=${encodeURIComponent(locParts.zone)}&area=${encodeURIComponent(locParts.area)}`}
                           style={{ color: 'var(--color-primary-light)', fontWeight: 500, textDecoration: 'underline' }}
                         >
-                          {locParts.bin}
+                          {locParts.area}
                         </Link>
                       </td>
                     )}
@@ -437,13 +545,13 @@ export default function InventorySnapshot() {
                         </Link>
                       </td>
                     )}
-                    {visibleCols.area && (
+                    {visibleCols.bin && (
                       <td className="text-sm">
                         <Link
-                          to={`/app/locations?zone=${encodeURIComponent(locParts.zone)}&area=${encodeURIComponent(locParts.area)}`}
+                          to={`/app/locations?zone=${encodeURIComponent(locParts.zone)}&area=${encodeURIComponent(locParts.area)}&shelf=${encodeURIComponent(parseShelf(locParts.bin))}&bin=${encodeURIComponent(locParts.bin)}&sku=${encodeURIComponent(item.skuCode)}`}
                           style={{ color: 'var(--color-primary-light)', fontWeight: 500, textDecoration: 'underline' }}
                         >
-                          {locParts.area}
+                          {locParts.bin}
                         </Link>
                       </td>
                     )}
@@ -478,7 +586,7 @@ export default function InventorySnapshot() {
                       </td>
                     )}
                     {visibleCols.availableQty && (
-                      <td><strong>{item.availableQty.toLocaleString()}</strong></td>
+                      <td><strong>{formatQtyForBin(item.availableQty, item.location, item.binTypeCode)}</strong></td>
                     )}
                     <td onClick={e=>e.stopPropagation()}>
                       <button className="btn btn-ghost btn-sm" onClick={() => openDrawer(item)}>
@@ -551,7 +659,7 @@ export default function InventorySnapshot() {
                   { label:'Available Inventory Position (Available IP)', val: drawerItem.availableQty, color:'var(--color-primary-light)' },
                 ].map(q => (
                   <div key={q.label} style={{ textAlign:'center', padding:'12px 8px', background:'var(--color-surface-hover)', borderRadius:8 }}>
-                    <div style={{ fontSize:22, fontWeight:800, color:q.color }}>{q.val.toLocaleString()}</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:q.color, lineHeight:1.25 }}>{formatQtyForBin(q.val, drawerItem.location, drawerItem.binTypeCode)}</div>
                     <div style={{ fontSize:10, color:'var(--color-text-muted)', textTransform:'uppercase', letterSpacing:'0.05em', marginTop:2 }}>{q.label}</div>
                   </div>
                 ))}
