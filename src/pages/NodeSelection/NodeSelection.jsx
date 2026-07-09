@@ -91,12 +91,7 @@ const NODES = [
       activeSKUs: 2210,
       serviceLevel: 98.1,
       otif: 95.6,
-<<<<<<< HEAD
     }
-=======
-      leadTime: '2.5 Days',
-    },
->>>>>>> main
   },
   {
     id: 'PUNE-DC',
@@ -112,12 +107,7 @@ const NODES = [
       activeSKUs: 1320,
       serviceLevel: 97.8,
       otif: 96.2,
-<<<<<<< HEAD
     }
-=======
-      leadTime: '2.8 Days',
-    },
->>>>>>> main
   },
   {
     id: 'HYD-DC',
@@ -133,29 +123,7 @@ const NODES = [
       activeSKUs: 986,
       serviceLevel: 96.5,
       otif: 94.9,
-<<<<<<< HEAD
     }
-=======
-      leadTime: '3.2 Days',
-    },
-  },
-  {
-    id: 'BANG-DC',
-    name: 'Bangalore Distribution Center',
-    city: 'Bengaluru',
-    type: 'Distribution Center',
-    region: 'South',
-    xPct: 32.6,
-    yPct: 72.2,
-    labelDir: 'left',
-    kpis: {
-      utilization: 70,
-      activeSKUs: 1540,
-      serviceLevel: 98.6,
-      otif: 97.1,
-      leadTime: '4.1 Days',
-    },
->>>>>>> main
   },
   {
     id: 'CHEN-DC',
@@ -171,12 +139,7 @@ const NODES = [
       activeSKUs: 1842,
       serviceLevel: 98.4,
       otif: 96.8,
-<<<<<<< HEAD
     }
-=======
-      leadTime: '4.5 Days',
-    },
->>>>>>> main
   },
   {
     id: 'BANG-DC',
@@ -266,7 +229,7 @@ const getDCtoDCTransferLeadTime = (fromDC, toDC) => {
   const dx = fromDC.xPct - toDC.xPct
   const dy = fromDC.yPct - toDC.yPct
   const dist = Math.sqrt(dx * dx + dy * dy)
-  
+
   const computedDays = Math.max(0.4, Math.round((dist * 0.07) * 10) / 10)
   return `${computedDays.toFixed(1)} days`
 }
@@ -274,7 +237,7 @@ const getDCtoDCTransferLeadTime = (fromDC, toDC) => {
 export default function NodeSelection() {
   const { setNode } = useApp()
   const navigate = useNavigate()
-  
+
   const [selected, setSelected] = useState(null)
   const [hovered, setHovered] = useState(null)
   const [mode, setMode] = useState('all-nodes') // 'all-nodes' | 'plant-lead-times' | 'inter-dc-transfers'
@@ -328,7 +291,7 @@ export default function NodeSelection() {
     if (mode === 'plant-lead-times' && selected.type === 'Manufacturing Plant') {
       const plantId = selected.id
       const dcMap = PLANT_TO_DC_LEAD_TIMES[plantId] || {}
-      
+
       NODES.filter(n => n.type === 'Distribution Center').forEach(dc => {
         if (dcMap[dc.id]) {
           routes.push({
@@ -420,7 +383,6 @@ export default function NodeSelection() {
           {/* ── India Map ─────────────────────────────────── */}
           <div className={styles.mapWrap}>
             <div className={styles.mapLegendRow}>
-<<<<<<< HEAD
               <div className={styles.legendWrapper}>
                 <span className={styles.legendLabel}>
                   <div className={styles.plantLegendIcon}>
@@ -437,12 +399,6 @@ export default function NodeSelection() {
                 {mode === 'plant-lead-times' && 'Click a plant to explore lead times to all DCs'}
                 {mode === 'inter-dc-transfers' && 'Click a DC to explore outward transfer paths'}
               </span>
-=======
-              <span className={styles.mapLegendLabel}>
-                <span className={styles.mapDot} /> DC Node &nbsp;·&nbsp; <span className={styles.plantDot} /> Mfg Plant
-              </span>
-              <span className={styles.mapLegendHint}>Hover to inspect route/lead time</span>
->>>>>>> main
             </div>
 
             {/* Map container */}
@@ -454,7 +410,6 @@ export default function NodeSelection() {
                 draggable={false}
               />
 
-<<<<<<< HEAD
               {/* Route lines overlay */}
               {activeRoutes.length > 0 && (
                 <svg className={styles.routesOverlay}>
@@ -521,73 +476,32 @@ export default function NodeSelection() {
               })}
 
               {/* Node Markers */}
-=======
-              {/* Route lines connecting Noida Plant to all DCs */}
-              <svg className={styles.routesOverlay}>
-                {NODES.filter(n => n.type === 'Distribution Center').map(dc => {
-                  const isRouteHovered = hovered === dc.id || selected?.id === dc.id || hovered === 'NOIDA-PLANT'
-                  return (
-                    <g key={`route-${dc.id}`}>
-                      <line
-                        x1="31.5%"
-                        y1="31.0%"
-                        x2={`${dc.xPct}%`}
-                        y2={`${dc.yPct}%`}
-                        className={`${styles.routeLine} ${isRouteHovered ? styles.routeHighlight : ''}`}
-                      />
-                      <line
-                        x1="31.5%"
-                        y1="31.0%"
-                        x2={`${dc.xPct}%`}
-                        y2={`${dc.yPct}%`}
-                        className={`${styles.routeDash} ${isRouteHovered ? styles.dashHighlight : ''}`}
-                      />
-                    </g>
-                  )
-                })}
-              </svg>
-
-              {/* Marker overlay — uses percentage positioning relative to the container */}
->>>>>>> main
               {NODES.map(node => {
                 const isSel = selected?.id === node.id
                 const isHov = hovered === node.id
                 const isPlant = node.type === 'Manufacturing Plant'
-<<<<<<< HEAD
 
                 // Visually emphasize plants in plant mode, and DCs in DC mode
-                const dimMarker = 
+                const dimMarker =
                   (mode === 'plant-lead-times' && !isPlant && !isSel) ||
                   (mode === 'inter-dc-transfers' && isPlant)
-=======
->>>>>>> main
 
                 return (
                   <div
                     key={node.id}
                     className={`${styles.markerWrap} ${isSel ? styles.markerSelected : ''} ${isHov ? styles.markerHovered : ''} ${isPlant ? styles.plantMarker : ''}`}
-<<<<<<< HEAD
-                    style={{ 
-                      left: `${node.xPct}%`, 
+                    style={{
+                      left: `${node.xPct}%`,
                       top: `${node.yPct}%`,
                       opacity: dimMarker ? 0.45 : 1,
                       transform: isHov ? 'scale(1.08)' : 'scale(1)'
                     }}
                     onClick={() => handleNodeClick(node)}
-=======
-                    style={{ left: `${node.xPct}%`, top: `${node.yPct}%` }}
-                    onClick={() => {
-                      if (!isPlant) {
-                        setSelected(node)
-                      }
-                    }}
->>>>>>> main
                     onMouseEnter={() => setHovered(node.id)}
                     onMouseLeave={() => setHovered(null)}
                     title={node.name}
                   >
                     {isPlant ? (
-<<<<<<< HEAD
                       <div className={styles.plantIconWrap} style={{ background: isSel ? '#4F46E5' : '#312E81' }}>
                         <Factory size={12} style={{ color: '#fff' }} />
                       </div>
@@ -598,21 +512,7 @@ export default function NodeSelection() {
                         <span className={styles.markerDot} style={{ background: isSel ? '#38BDF8' : '#2563EB' }} />
                       </>
                     )}
-                    
-=======
-                      <div className={styles.plantIconWrap}>🏭</div>
-                    ) : (
-                      <>
-                        {/* Pulse ring — selected state */}
-                        {isSel && <span className={styles.pulseRing} />}
-                        {/* Hover ring */}
-                        {isHov && !isSel && <span className={styles.hoverRing} />}
-                        {/* Marker dot */}
-                        <span className={styles.markerDot} />
-                      </>
-                    )}
-                    {/* City label */}
->>>>>>> main
+
                     <span className={`${styles.markerLabel} ${node.labelDir === 'left' ? styles.labelLeft : styles.labelRight}`}>
                       {node.city} {isPlant ? '(Plant)' : ''}
                     </span>
@@ -647,7 +547,6 @@ export default function NodeSelection() {
 
                 <div className={styles.divider} />
 
-<<<<<<< HEAD
                 {/* 1. Plant Lead Times Exploration View */}
                 {mode === 'plant-lead-times' && selected.type === 'Manufacturing Plant' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -666,34 +565,6 @@ export default function NodeSelection() {
                           <div className={styles.kpiValue}>{selected.kpis.serviceLevel}% SLA Adherence</div>
                           <div className={styles.kpiLabel}>Quality & Logistics Score</div>
                         </div>
-=======
-                {/* Lead Time Info */}
-                <div className={styles.leadTimeCard}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div className={styles.plantMiniIcon}>🏭</div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: 9, color: 'rgba(255, 255, 255, 0.45)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inbound Source</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>Noida Manufacturing Plant</span>
-                    </div>
-                  </div>
-                  <div className={styles.divider} style={{ margin: '8px 0', opacity: 0.3 }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.65)', fontWeight: 500 }}>TRANSIT LEAD TIME</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: '#38BDF8' }}>{selected.kpis.leadTime}</span>
-                  </div>
-                </div>
-
-                {/* Executive KPIs */}
-                <div className={styles.kpiSection}>
-                  <p className={styles.kpiSectionLabel}>Network KPIs</p>
-
-                  {/* Capacity Utilization — with progress bar */}
-                  <div className={styles.kpiUtilCard}>
-                    <div className={styles.kpiUtilHeader}>
-                      <div className={styles.kpiUtilLeft}>
-                        <TrendingUp size={13} style={{ color: utilizationColor(selected.kpis.utilization) }} />
-                        <span className={styles.kpiUtilLabel}>Capacity Utilization</span>
->>>>>>> main
                       </div>
                     </div>
 
@@ -776,7 +647,7 @@ export default function NodeSelection() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div className={styles.kpiSection}>
                       <p className={styles.kpiSectionLabel}>DC Metrics</p>
-                      
+
                       <div className={styles.kpiUtilCard}>
                         <div className={styles.kpiUtilHeader}>
                           <div className={styles.kpiUtilLeft}>
@@ -866,7 +737,6 @@ export default function NodeSelection() {
                   {mode === 'inter-dc-transfers' && 'Click any DC marker on the map to view transfer lead times to other connected DCs.'}
                 </p>
 
-<<<<<<< HEAD
                 <div className={styles.quickList} style={{ marginTop: 12 }}>
                   <p className={styles.quickListLabel}>
                     {mode === 'plant-lead-times' ? 'Manufacturing Plants' : 'Distribution Centers'}
@@ -897,21 +767,6 @@ export default function NodeSelection() {
                       </button>
                     ))
                   )}
-=======
-                <div className={styles.quickList}>
-                  <p className={styles.quickListLabel}>Available Nodes</p>
-                  {NODES.filter(n => n.type === 'Distribution Center').map(n => (
-                    <button
-                      key={n.id}
-                      className={styles.quickItem}
-                      onClick={() => setSelected(n)}
-                    >
-                      <span className={styles.quickDot} />
-                      <span className={styles.quickCity}>{n.city}</span>
-                      <span className={styles.quickUtil}>{n.kpis.utilization}% util.</span>
-                    </button>
-                  ))}
->>>>>>> main
                 </div>
               </div>
             )}
