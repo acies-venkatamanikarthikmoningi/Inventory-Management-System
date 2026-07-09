@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext'
 import {
   LayoutDashboard, Package, BookOpen, MapPin, Upload,
   Layers, BarChart2, Lightbulb, Settings, LogOut,
-  ChevronLeft, ChevronRight, Boxes
+  ChevronLeft, ChevronRight, Boxes, PackageCheck, Send, RefreshCw
 } from 'lucide-react'
 import styles from './Sidebar.module.css'
 
@@ -13,6 +13,9 @@ const NAV_ITEMS = [
   { to: '/app/sku-explore',icon: BookOpen,       label: 'SKU Explore' },
   { to: '/app/locations', icon: MapPin,         label: 'Location Hierarchy' },
   { to: '/app/data-upload',icon: Upload,        label: 'Data Upload' },
+  { to: '/app/inbound', icon: PackageCheck, label: 'Inbound' },
+  { icon: Send, label: 'Outbound', disabled: true },
+  { icon: RefreshCw, label: 'Replenishment', disabled: true },
   { to: '/app/batches',  icon: Layers,          label: 'Batch Tracking' },
   { to: '/app/capacity', icon: BarChart2,       label: 'Capacity Utilization' },
   { to: '/app/insights', icon: Lightbulb,       label: 'Inventory Insights' },
@@ -20,7 +23,7 @@ const NAV_ITEMS = [
 ]
 
 export default function Sidebar() {
-  const { node, logout, sidebarCollapsed, setSidebarCollapsed } = useApp()
+  const { node, logout, sidebarCollapsed, setSidebarCollapsed, showToast } = useApp()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -56,19 +59,36 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className={styles.nav}>
-        {NAV_ITEMS.map(({ to, icon: Icon, label, exact }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={exact}
-            className={({ isActive }) =>
-              `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
-            }
-            title={sidebarCollapsed ? label : undefined}
-          >
-            <Icon size={18} className={styles.navIcon} />
-            {!sidebarCollapsed && <span className={styles.navLabel}>{label}</span>}
-          </NavLink>
+        {NAV_ITEMS.map(({ to, icon: Icon, label, exact, disabled }) => (
+          disabled ? (
+            <button
+              key={label}
+              className={`${styles.navItem} ${styles.navItemDisabled}`}
+              onClick={() => showToast('Coming soon', 'info')}
+              title={sidebarCollapsed ? `${label} - Coming soon` : undefined}
+            >
+              <Icon size={18} className={styles.navIcon} />
+              {!sidebarCollapsed && (
+                <>
+                  <span className={styles.navLabel}>{label}</span>
+                  <span className={styles.comingSoonBadge}>Coming soon</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <NavLink
+              key={to}
+              to={to}
+              end={exact}
+              className={({ isActive }) =>
+                `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
+              }
+              title={sidebarCollapsed ? label : undefined}
+            >
+              <Icon size={18} className={styles.navIcon} />
+              {!sidebarCollapsed && <span className={styles.navLabel}>{label}</span>}
+            </NavLink>
+          )
         ))}
       </nav>
 
