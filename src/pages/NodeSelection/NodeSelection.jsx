@@ -17,8 +17,8 @@ const NODES = [
     city: 'Noida',
     type: 'Manufacturing Plant',
     region: 'North',
-    xPct: 32.5,
-    yPct: 31.0,
+    xPct: 33.5,
+    yPct: 31.5,
     labelDir: 'right',
     kpis: {
       capacity: '500k units/mo',
@@ -33,8 +33,8 @@ const NODES = [
     city: 'Delhi',
     type: 'Manufacturing Plant',
     region: 'North',
-    xPct: 29.5,
-    yPct: 29.0,
+    xPct: 27.5,
+    yPct: 28.5,
     labelDir: 'left',
     kpis: {
       capacity: '400k units/mo',
@@ -60,23 +60,6 @@ const NODES = [
     }
   },
   // --- Distribution Centers ---
-  {
-    id: 'NOIDA-PLANT',
-    name: 'Noida Manufacturing Plant',
-    city: 'Noida (NCR)',
-    type: 'Manufacturing Plant',
-    region: 'North',
-    xPct: 31.5,
-    yPct: 31.0,
-    labelDir: 'right',
-    kpis: {
-      utilization: 91,
-      activeSKUs: 5800,
-      serviceLevel: 99.4,
-      otif: 98.2,
-      leadTime: 'Source',
-    },
-  },
   {
     id: 'MUM-DC',
     name: 'Mumbai Distribution Center',
@@ -229,7 +212,7 @@ const getDCtoDCTransferLeadTime = (fromDC, toDC) => {
   const dx = fromDC.xPct - toDC.xPct
   const dy = fromDC.yPct - toDC.yPct
   const dist = Math.sqrt(dx * dx + dy * dy)
-  
+
   const computedDays = Math.max(0.4, Math.round((dist * 0.07) * 10) / 10)
   return `${computedDays.toFixed(1)} days`
 }
@@ -237,7 +220,7 @@ const getDCtoDCTransferLeadTime = (fromDC, toDC) => {
 export default function NodeSelection() {
   const { user, setNode } = useApp()
   const navigate = useNavigate()
-  
+
   const [selected, setSelected] = useState(null)
   const [hovered, setHovered] = useState(null)
   const [mode, setMode] = useState('all-nodes') // 'all-nodes' | 'plant-lead-times' | 'inter-dc-transfers'
@@ -295,7 +278,7 @@ export default function NodeSelection() {
     if (mode === 'plant-lead-times' && selected.type === 'Manufacturing Plant') {
       const plantId = selected.id
       const dcMap = PLANT_TO_DC_LEAD_TIMES[plantId] || {}
-      
+
       NODES.filter(n => n.type === 'Distribution Center').forEach(dc => {
         if (dcMap[dc.id]) {
           routes.push({
@@ -486,7 +469,7 @@ export default function NodeSelection() {
                 const isPlant = node.type === 'Manufacturing Plant'
 
                 // Visually emphasize plants in plant mode, and DCs in DC mode
-                const dimMarker = 
+                const dimMarker =
                   (mode === 'plant-lead-times' && !isPlant && !isSel) ||
                   (mode === 'inter-dc-transfers' && isPlant)
 
@@ -494,8 +477,8 @@ export default function NodeSelection() {
                   <div
                     key={node.id}
                     className={`${styles.markerWrap} ${isSel ? styles.markerSelected : ''} ${isHov ? styles.markerHovered : ''} ${isPlant ? styles.plantMarker : ''}`}
-                    style={{ 
-                      left: `${node.xPct}%`, 
+                    style={{
+                      left: `${node.xPct}%`,
                       top: `${node.yPct}%`,
                       opacity: dimMarker ? 0.45 : 1,
                       transform: isHov ? 'scale(1.08)' : 'scale(1)'
@@ -516,7 +499,6 @@ export default function NodeSelection() {
                         <span className={styles.markerDot} style={{ background: isSel ? '#38BDF8' : '#2563EB' }} />
                       </>
                     )}
-                    
                     <span className={`${styles.markerLabel} ${node.labelDir === 'left' ? styles.labelLeft : styles.labelRight}`}>
                       {node.city} {isPlant ? '(Plant)' : ''}
                     </span>
@@ -651,7 +633,7 @@ export default function NodeSelection() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div className={styles.kpiSection}>
                       <p className={styles.kpiSectionLabel}>DC Metrics</p>
-                      
+
                       <div className={styles.kpiUtilCard}>
                         <div className={styles.kpiUtilHeader}>
                           <div className={styles.kpiUtilLeft}>
