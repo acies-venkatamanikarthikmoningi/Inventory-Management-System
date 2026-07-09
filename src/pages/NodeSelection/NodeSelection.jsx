@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
-import { ArrowRight, ArrowLeft, Warehouse, TrendingUp, Package, CheckCircle, Truck, Factory, Shuffle, Info } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Warehouse, TrendingUp, Factory, Shuffle, Info } from 'lucide-react'
 import styles from './NodeSelection.module.css'
 
 /* ─────────────────────────────────────────────────────────

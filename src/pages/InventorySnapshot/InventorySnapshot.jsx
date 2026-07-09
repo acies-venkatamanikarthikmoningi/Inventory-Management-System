@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { Search, Filter, Download, ChevronUp, ChevronDown, X, Package, Layers, MapPin, Activity, Tag, Settings } from 'lucide-react'
+import areaMaster from '../../data/areaMaster.json'
 import binCapacityMaster from '../../data/binCapacityMaster.json'
 import skuMasterData from '../../data/sku.json'
 import Drawer, { DrawerSection, DetailGrid, MovementHistory } from '../../components/Drawer/Drawer'
@@ -88,6 +89,15 @@ const formatQtyForBin = (qty, binOrLocationString, typeCodeOverride = '') => {
 }
 
 const uniqueSorted = values => [...new Set(values.filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)))
+
+const areaDescriptionByCode = Object.fromEntries(
+  areaMaster.map(area => [area.areaCode, area.description])
+)
+
+const formatArea = (areaCode) => {
+  const description = areaDescriptionByCode[areaCode]
+  return description ? `${areaCode} — ${description}` : areaCode
+}
 
 const dbNodeMap = {
   'Mumbai Distribution Center': 'Mumbai Distribution Center',
@@ -307,7 +317,7 @@ export default function InventorySnapshot() {
   const activeChips = [
     ...(search ? [{ key:'search', label:`Search: "${search}"`, clear: () => setSearch('') }] : []),
     ...(filters.sku      ? [{ key:'sku', label:`SKU: ${filters.sku}`,            clear: () => setFilters(p=>({...p,sku:''})) }] : []),
-    ...(filters.area     ? [{ key:'area', label:`Area: ${filters.area}`,         clear: () => handleAreaChange('') }] : []),
+    ...(filters.area     ? [{ key:'area', label:`Area: ${formatArea(filters.area)}`, clear: () => handleAreaChange('') }] : []),
     ...(filters.zone     ? [{ key:'zone', label:`Zone: ${filters.zone}`,         clear: () => handleZoneChange('') }] : []),
     ...(filters.bin      ? [{ key:'bin', label:`Bin: ${filters.bin}`,            clear: () => setFilters(p=>({...p,bin:''})) }] : []),
     ...(filters.classification ? [{ key:'class', label:`Classification: ${filters.classification}`, clear: () => setFilters(p=>({...p,classification:''})) }] : []),
@@ -420,7 +430,11 @@ export default function InventorySnapshot() {
                   }}
                 >
                   <option value="">All {f.label}s</option>
-                  {f.opts.map(o=><option key={o}>{o}</option>)}
+                  {f.opts.map(o => (
+                    <option key={o} value={o}>
+                      {f.key === 'area' ? formatArea(o) : o}
+                    </option>
+                  ))}
                 </select>
               </div>
             ))}
@@ -531,7 +545,7 @@ export default function InventorySnapshot() {
                           to={`/app/locations?zone=${encodeURIComponent(locParts.zone)}&area=${encodeURIComponent(locParts.area)}`}
                           style={{ color: 'var(--color-primary-light)', fontWeight: 500, textDecoration: 'underline' }}
                         >
-                          {locParts.area}
+                          {formatArea(locParts.area)}
                         </Link>
                       </td>
                     )}
