@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { to: '/app/data-upload',icon: Upload,        label: 'Data Upload' },
   { to: '/app/inbound', icon: PackageCheck, label: 'Inbound' },
   { icon: Send, label: 'Outbound', disabled: true },
-  { icon: RefreshCw, label: 'Replenishment', disabled: true },
+  { to: '/app/replenishment', icon: RefreshCw, label: 'Replenishment' },
   { to: '/app/batches',  icon: Layers,          label: 'Batch Tracking' },
   { to: '/app/capacity', icon: BarChart2,       label: 'Capacity Utilization' },
   { to: '/app/insights', icon: Lightbulb,       label: 'Inventory Insights' },

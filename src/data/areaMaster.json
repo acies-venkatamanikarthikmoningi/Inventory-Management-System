@@ -1,0 +1,5 @@
+[
+  { "areaCode": "AREA-FG1", "description": "Finished Goods Storage", "type": "INVENTORY", "active": true },
+  { "areaCode": "AREA-RS1", "description": "Reserve Storage", "type": "INVENTORY", "active": true },
+  { "areaCode": "AREA-PK1", "description": "Picking Area", "type": "INVENTORY", "active": true }
+]
