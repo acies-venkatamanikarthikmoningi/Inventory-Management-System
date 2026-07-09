@@ -14,12 +14,28 @@ import styles from './NodeSelection.module.css'
    ─────────────────────────────────────────────────────── */
 const NODES = [
   {
+    id: 'NOIDA-PLANT',
+    name: 'Noida Manufacturing Plant',
+    city: 'Noida (NCR)',
+    type: 'Manufacturing Plant',
+    region: 'North',
+    xPct: 31.5,
+    yPct: 31.0,
+    labelDir: 'right',
+    kpis: {
+      utilization: 91,
+      activeSKUs: 5800,
+      serviceLevel: 99.4,
+      otif: 98.2,
+      leadTime: 'Source',
+    },
+  },
+  {
     id: 'MUM-DC',
     name: 'Mumbai Distribution Center',
     city: 'Mumbai',
     type: 'Distribution Center',
     region: 'West',
-    // 18.97°N, 72.82°E — west coast; label points left (toward Arabian Sea)
     xPct: 16.8,
     yPct: 60.2,
     labelDir: 'left',
@@ -28,6 +44,7 @@ const NODES = [
       activeSKUs: 2210,
       serviceLevel: 98.1,
       otif: 95.6,
+      leadTime: '2.5 Days',
     },
   },
   {
@@ -36,7 +53,6 @@ const NODES = [
     city: 'Pune',
     type: 'Distribution Center',
     region: 'West',
-    // 18.52°N, 73.86°E — slightly below Mumbai; label points right to avoid Mumbai's label
     xPct: 20.4,
     yPct: 61.8,
     labelDir: 'right',
@@ -45,6 +61,7 @@ const NODES = [
       activeSKUs: 1320,
       serviceLevel: 97.8,
       otif: 96.2,
+      leadTime: '2.8 Days',
     },
   },
   {
@@ -53,7 +70,6 @@ const NODES = [
     city: 'Hyderabad',
     type: 'Distribution Center',
     region: 'South',
-    // 17.38°N, 78.48°E — central Deccan; label points right
     xPct: 35.8,
     yPct: 63.7,
     labelDir: 'right',
@@ -62,6 +78,7 @@ const NODES = [
       activeSKUs: 986,
       serviceLevel: 96.5,
       otif: 94.9,
+      leadTime: '3.2 Days',
     },
   },
   {
@@ -70,7 +87,6 @@ const NODES = [
     city: 'Bengaluru',
     type: 'Distribution Center',
     region: 'South',
-    // 12.97°N, 77.59°E — label points LEFT so it does not overlap with Chennai's label
     xPct: 32.6,
     yPct: 72.2,
     labelDir: 'left',
@@ -79,6 +95,7 @@ const NODES = [
       activeSKUs: 1540,
       serviceLevel: 98.6,
       otif: 97.1,
+      leadTime: '4.1 Days',
     },
   },
   {
@@ -87,8 +104,6 @@ const NODES = [
     city: 'Chennai',
     type: 'Distribution Center',
     region: 'South',
-    // 13.08°N, 80.27°E — Bay of Bengal east coast
-    // label points RIGHT (toward the coast) — opposite direction from Bengaluru's label
     xPct: 43.5,
     yPct: 72.5,
     labelDir: 'right',
@@ -97,6 +112,7 @@ const NODES = [
       activeSKUs: 1842,
       serviceLevel: 98.4,
       otif: 96.8,
+      leadTime: '4.5 Days',
     },
   },
 ]
@@ -144,9 +160,9 @@ export default function NodeSelection() {
           <div className={styles.mapWrap}>
             <div className={styles.mapLegendRow}>
               <span className={styles.mapLegendLabel}>
-                <span className={styles.mapDot} /> Distribution Center
+                <span className={styles.mapDot} /> DC Node &nbsp;·&nbsp; <span className={styles.plantDot} /> Mfg Plant
               </span>
-              <span className={styles.mapLegendHint}>Click a marker to select</span>
+              <span className={styles.mapLegendHint}>Hover to inspect route/lead time</span>
             </div>
 
             {/* Map container — real India SVG as background, markers overlaid */}
@@ -159,30 +175,66 @@ export default function NodeSelection() {
                 draggable={false}
               />
 
+              {/* Route lines connecting Noida Plant to all DCs */}
+              <svg className={styles.routesOverlay}>
+                {NODES.filter(n => n.type === 'Distribution Center').map(dc => {
+                  const isRouteHovered = hovered === dc.id || selected?.id === dc.id || hovered === 'NOIDA-PLANT'
+                  return (
+                    <g key={`route-${dc.id}`}>
+                      <line
+                        x1="31.5%"
+                        y1="31.0%"
+                        x2={`${dc.xPct}%`}
+                        y2={`${dc.yPct}%`}
+                        className={`${styles.routeLine} ${isRouteHovered ? styles.routeHighlight : ''}`}
+                      />
+                      <line
+                        x1="31.5%"
+                        y1="31.0%"
+                        x2={`${dc.xPct}%`}
+                        y2={`${dc.yPct}%`}
+                        className={`${styles.routeDash} ${isRouteHovered ? styles.dashHighlight : ''}`}
+                      />
+                    </g>
+                  )
+                })}
+              </svg>
+
               {/* Marker overlay — uses percentage positioning relative to the container */}
               {NODES.map(node => {
                 const isSel = selected?.id === node.id
                 const isHov = hovered === node.id
+                const isPlant = node.type === 'Manufacturing Plant'
 
                 return (
                   <div
                     key={node.id}
-                    className={`${styles.markerWrap} ${isSel ? styles.markerSelected : ''} ${isHov ? styles.markerHovered : ''}`}
+                    className={`${styles.markerWrap} ${isSel ? styles.markerSelected : ''} ${isHov ? styles.markerHovered : ''} ${isPlant ? styles.plantMarker : ''}`}
                     style={{ left: `${node.xPct}%`, top: `${node.yPct}%` }}
-                    onClick={() => setSelected(node)}
+                    onClick={() => {
+                      if (!isPlant) {
+                        setSelected(node)
+                      }
+                    }}
                     onMouseEnter={() => setHovered(node.id)}
                     onMouseLeave={() => setHovered(null)}
                     title={node.name}
                   >
-                    {/* Pulse ring — selected state */}
-                    {isSel && <span className={styles.pulseRing} />}
-                    {/* Hover ring */}
-                    {isHov && !isSel && <span className={styles.hoverRing} />}
-                    {/* Marker dot */}
-                    <span className={styles.markerDot} />
+                    {isPlant ? (
+                      <div className={styles.plantIconWrap}>🏭</div>
+                    ) : (
+                      <>
+                        {/* Pulse ring — selected state */}
+                        {isSel && <span className={styles.pulseRing} />}
+                        {/* Hover ring */}
+                        {isHov && !isSel && <span className={styles.hoverRing} />}
+                        {/* Marker dot */}
+                        <span className={styles.markerDot} />
+                      </>
+                    )}
                     {/* City label */}
                     <span className={`${styles.markerLabel} ${node.labelDir === 'left' ? styles.labelLeft : styles.labelRight}`}>
-                      {node.city}
+                      {node.city} {isPlant ? '(Plant)' : ''}
                     </span>
                   </div>
                 )
@@ -210,6 +262,22 @@ export default function NodeSelection() {
                 </div>
 
                 <div className={styles.divider} />
+
+                {/* Lead Time Info */}
+                <div className={styles.leadTimeCard}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className={styles.plantMiniIcon}>🏭</div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: 9, color: 'rgba(255, 255, 255, 0.45)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inbound Source</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>Noida Manufacturing Plant</span>
+                    </div>
+                  </div>
+                  <div className={styles.divider} style={{ margin: '8px 0', opacity: 0.3 }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.65)', fontWeight: 500 }}>TRANSIT LEAD TIME</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: '#38BDF8' }}>{selected.kpis.leadTime}</span>
+                  </div>
+                </div>
 
                 {/* Executive KPIs */}
                 <div className={styles.kpiSection}>
@@ -297,7 +365,7 @@ export default function NodeSelection() {
 
                 <div className={styles.quickList}>
                   <p className={styles.quickListLabel}>Available Nodes</p>
-                  {NODES.map(n => (
+                  {NODES.filter(n => n.type === 'Distribution Center').map(n => (
                     <button
                       key={n.id}
                       className={styles.quickItem}
