@@ -61,6 +61,23 @@ const NODES = [
   },
   // --- Distribution Centers ---
   {
+    id: 'NOIDA-PLANT',
+    name: 'Noida Manufacturing Plant',
+    city: 'Noida (NCR)',
+    type: 'Manufacturing Plant',
+    region: 'North',
+    xPct: 31.5,
+    yPct: 31.0,
+    labelDir: 'right',
+    kpis: {
+      utilization: 91,
+      activeSKUs: 5800,
+      serviceLevel: 99.4,
+      otif: 98.2,
+      leadTime: 'Source',
+    },
+  },
+  {
     id: 'MUM-DC',
     name: 'Mumbai Distribution Center',
     city: 'Mumbai',
