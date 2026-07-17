@@ -1,0 +1,24 @@
+databases:
+  - name: inventory-db
+    plan: free
+  - name: fill-rate-db
+    plan: free
+
+services:
+  - type: web
+    name: inventory-management-api
+    runtime: docker
+    plan: free
+    dockerfilePath: backend/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: INVENTORY_DATABASE_URL
+        fromDatabase:
+          name: inventory-db
+          property: connectionString
+      - key: FILL_RATE_DATABASE_URL
+        fromDatabase:
+          name: fill-rate-db
+          property: connectionString
+      - key: INVENTORY_CORS_ORIGINS
+        value: "*"
