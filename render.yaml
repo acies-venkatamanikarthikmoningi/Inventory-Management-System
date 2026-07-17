@@ -11,8 +11,6 @@ services:
     plan: free
     dockerfilePath: backend/Dockerfile
     dockerContext: .
-    preDeployCommand: alembic upgrade head && alembic -c alembic_fill_rate.ini upgrade head
-    initialDeployHook: python -m app.seed.network_foundation && python -m app.seed.multi_node && python -m app.seed.exceptions_and_expiry && python -m app.seed.dynamic_policy && python -m app.fill_rate.seed
     envVars:
       - key: INVENTORY_DATABASE_URL
         fromDatabase:

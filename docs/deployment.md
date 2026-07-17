@@ -10,5 +10,6 @@
 3. Copy the backend service's public HTTPS URL from the Render dashboard.
 4. Set `VITE_API_BASE_URL` in Vercel to that public URL, not `localhost`.
 5. Redeploy the Vercel frontend after changing the environment variable.
+6. On the free tier, keep deploy-time commands out of `render.yaml`; the container startup already applies migrations and seeds.
 
 The seed is safe to run repeatedly and updates rows by their existing business/source keys.
