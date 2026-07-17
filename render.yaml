@@ -22,3 +22,5 @@ services:
           property: connectionString
       - key: INVENTORY_CORS_ORIGINS
         value: "*"
+      - key: INVENTORY_RUN_BOOTSTRAP_ON_STARTUP
+        value: "false"

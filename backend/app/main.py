@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import subprocess
 
 from fastapi import FastAPI
@@ -34,7 +35,8 @@ async def bootstrap_database() -> None:
 
 @app.on_event("startup")
 async def startup_bootstrap() -> None:
-    asyncio.create_task(bootstrap_database())
+    if os.getenv("INVENTORY_RUN_BOOTSTRAP_ON_STARTUP", "false").lower() == "true":
+        asyncio.create_task(bootstrap_database())
 
 
 app.add_middleware(
