@@ -138,6 +138,22 @@
   color: #6D28D9;
 }
 
+/* Robustness Score cell: clickable only for suggest_pending_approval /
+   no_better_alternative_found rows (see CLICKABLE_GOVERNANCE_ACTIONS) - reuses
+   the existing .badge look, just adds a button reset + pointer/hover affordance
+   so it visually invites a click where a plain-text badge would not. */
+.scoreCellButton {
+  cursor: pointer;
+  border: none;
+  font: inherit;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.scoreCellButton:hover {
+  filter: brightness(0.95);
+  box-shadow: 0 0 0 2px var(--color-border);
+}
+
 /* Pagination */
 .paginationBar {
   display: flex;

@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import baseInventoryData from '../data/inventory.json'
 import inboundSeed from '../data/inbound.json'
 import replenishmentConfigSeed from '../data/replenishmentConfig.json'
+import { useNetworkState } from '../hooks/useNetworkState'
 
 /* ── App Context: Auth + Theme + Toast + Node ─────────────── */
 const AppContext = createContext(null)
@@ -20,6 +21,11 @@ export function AppProvider({ children }) {
   const [toasts, setToasts]   = useState([])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [inventoryData, setInventoryData] = useState(baseInventoryData)
+  const networkState = useNetworkState(node)
+
+  // Dashboard, Inventory Snapshot, and Batch Tracking read through this shared adapter
+  // (Phase 1/2). Other pages retain their existing local JSON behaviour until their planned phases.
+  useEffect(() => { setInventoryData(networkState.data) }, [networkState.data])
   const [asns, setAsns] = useState(inboundSeed)
   const [replenishmentConfig, setReplenishmentConfig] = useState(replenishmentConfigSeed)
 
@@ -87,7 +93,7 @@ export function AppProvider({ children }) {
       theme, toggleTheme,
       toasts, showToast, removeToast,
       sidebarCollapsed, setSidebarCollapsed,
-      inventoryData, setInventoryData,
+      inventoryData, setInventoryData, networkState,
       asns, setAsns,
       replenishmentConfig, setReplenishmentConfig,
     }}>

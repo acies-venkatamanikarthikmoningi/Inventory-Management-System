@@ -6,20 +6,12 @@ import {
   TrendingDown, Upload, Activity, RefreshCw, Download,
   ShieldAlert, Archive, Clock, Eye, Zap, FileText
 } from 'lucide-react'
-import inventoryData from '../../data/inventory.json'
 import styles from './Dashboard.module.css'
 
 /* ── Helpers ────────────────────────────────────────── */
 const today   = new Date()
 const daysUntil = d => Math.ceil((new Date(d) - today) / 86400000)
 
-const totalSKUs         = inventoryData.length
-const totalInventory    = inventoryData.reduce((s, i) => s + i.availableQty + i.reservedQty, 0)
-const nearExpiry        = inventoryData.filter(i => { const d = daysUntil(i.expiry); return d > 0 && d <= 90 }).length
-const lowStock          = inventoryData.filter(i => i.status === 'Low' || i.status === 'Critical').length
-const reservedInventory = inventoryData.reduce((s, i) => s + i.reservedQty, 0)
-const healthyItems      = inventoryData.filter(i => i.status === 'Healthy').length
-const accuracyPct       = Math.round((healthyItems / totalSKUs) * 100)
 
 /* ── Sparkline component (SVG path) ─────────────────── */
 function Sparkline({ data, color = '#2563EB', height = 36, width = 80 }) {
@@ -81,7 +73,15 @@ function useAnimatedCounter(target, duration = 800) {
 }
 
 /* ── KPI Card data with sparklines + yesterday comparison ── */
-const KPIS = [
+const buildKpis = inventoryData => {
+  const totalSKUs = inventoryData.length
+  const totalInventory = inventoryData.reduce((s, i) => s + (i.availableQty || 0) + (i.reservedQty || 0), 0)
+  const nearExpiry = inventoryData.filter(i => { const d = daysUntil(i.expiry); return d > 0 && d <= 90 }).length
+  const lowStock = inventoryData.filter(i => i.status === 'Low' || i.status === 'Critical').length
+  const reservedInventory = inventoryData.reduce((s, i) => s + (i.reservedQty || 0), 0)
+  const healthyItems = inventoryData.filter(i => i.status === 'Healthy').length
+  const accuracyPct = totalSKUs ? Math.round((healthyItems / totalSKUs) * 100) : 0
+  return [
   {
     id: 'total-skus',
     label: 'Total SKUs',
@@ -166,7 +166,8 @@ const KPIS = [
     spark: [5, 7, 6, 8, 9, 11, 12],
     format: v => v.toString(),
   },
-]
+  ]
+}
 
 /* ── KPI Card component ──────────────────────────────── */
 function KPICard({ kpi }) {
@@ -220,7 +221,8 @@ const STATUS_MAP = {
 }
 
 export default function Dashboard() {
-  const { node, showToast } = useApp()
+  const { node, showToast, inventoryData } = useApp()
+  const kpis = buildKpis(inventoryData)
   const navigate = useNavigate()
   const [refreshing, setRefreshing] = useState(false)
 
@@ -252,15 +254,12 @@ export default function Dashboard() {
           <button className="btn btn-secondary btn-sm" onClick={handleExport}>
             <Download size={14} /> Export Report
           </button>
-          <button className="btn btn-primary btn-sm" onClick={() => navigate('/app/data-upload')}>
-            <Upload size={14} /> Upload Data
-          </button>
         </div>
       </div>
 
       {/* KPI Grid */}
       <div className={styles.kpiGrid}>
-        {KPIS.map(k => <KPICard key={k.id} kpi={k} />)}
+        {kpis.map(k => <KPICard key={k.id} kpi={k} />)}
       </div>
 
       {/* Bottom Row */}
@@ -315,7 +314,6 @@ export default function Dashboard() {
             <div className={styles.actionList}>
               {[
                 { label:'Go to Inventory', desc:'Browse all SKUs',        icon:Package,   path:'/app/inventory',  color:'#2563EB' },
-                { label:'Go to Upload',    desc:'Import new data',         icon:Upload,    path:'/app/data-upload',color:'#6D28D9' },
                 { label:'View Expiry',     desc:'Batch expiry calendar',   icon:Clock,     path:'/app/batches',    color:'#D97706' },
                 { label:'View Alerts',     desc:'Active insights',         icon:AlertTriangle,path:'/app/insights',color:'#DC2626' },
                 { label:'Capacity Report', desc:'Zone utilization',        icon:BarChart2, path:'/app/capacity',   color:'#16A34A' },

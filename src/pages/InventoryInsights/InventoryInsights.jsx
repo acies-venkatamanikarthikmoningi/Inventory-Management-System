@@ -1,15 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 import { AlertTriangle, CheckCircle, Info, Lightbulb, Search, RefreshCw, XCircle, ChevronDown, ChevronUp, MessageSquare, User, Clock } from 'lucide-react'
+import { toInsightRow, toTransferInsightRow } from '../../api/contracts'
+import { useExceptions, useTransferCandidates } from '../../hooks/useExceptions'
 import styles from './InventoryInsights.module.css'
 
-const ALL_INSIGHTS = [
-  { id:'INS-001', type:'Low Stock Alert',     priority:'Critical', severity:'High',   sku:'SKU-1007', impact:'Production halt risk â€” Disposable Syringes unavailable for dispatch', message:'Disposable Syringes 5ml stock is critically low (20 units). Reorder point: 1000 units.', recommendation:'Raise an emergency purchase order for 5000 units from MediFlow Medical immediately.', status:'Open',        category:'Stock',       assignedTo:'Ravi Kumar', createdAt:'2026-06-30 06:00' },
-  { id:'INS-002', type:'Near Expiry Alert',   priority:'High',     severity:'High',   sku:'BATCH-2024-004', impact:'INR 45,000 inventory value at risk of write-off', message:'Insulin Vials batch BATCH-2024-004 expires in 5 days (2026-07-05).', recommendation:'Prioritize dispatch of this batch. Notify sales team for urgent order fulfilment.', status:'Open',        category:'Expiry',      assignedTo:'Priya Singh', createdAt:'2026-06-30 07:00' },
-  { id:'INS-003', type:'Near Expiry Alert',   priority:'High',     severity:'Medium', sku:'BATCH-2024-003', impact:'Moderate expiry risk â€” 20 days to action', message:'Antiseptic Solution batch BATCH-2024-003 expires in ~20 days (2026-07-20).', recommendation:'Issue inter-node transfer to high-consumption node or plan write-off.', status:'In Progress',  category:'Expiry',      assignedTo:'Arjun Das', createdAt:'2026-06-29 15:00' },
+// Categories not yet backed by a detection service (Phase 6: Recommendations and Governance);
+// kept as clearly-labelled simulated examples until that phase lands.
+const SIMULATED_INSIGHTS = [
   { id:'INS-004', type:'Over Capacity Alert', priority:'High',     severity:'High',   sku:'Zone 4', impact:'Cold chain overflow risk â€” temperature sensitive inventory may be at risk', message:'Zone 4 (Cold Storage) is at 92% utilization â€” approaching overflow threshold.', recommendation:'Review cold chain inventory. Identify and dispatch near-expiry items first.', status:'Open',        category:'Capacity',    assignedTo:'Ravi Kumar', createdAt:'2026-06-30 08:00' },
-  { id:'INS-005', type:'Low Stock Alert',     priority:'Medium',   severity:'Medium', sku:'SKU-1002', impact:'Patient safety kit replenishment needed within 7 days', message:'Surgical Gloves (L) stock is below minimum level (150 pairs vs min 200 pairs).', recommendation:'Create a replenishment order. Expected lead time: 7 days.', status:'Open',        category:'Stock',       assignedTo:'Fathina', createdAt:'2026-06-30 09:00' },
-  { id:'INS-006', type:'Inventory Imbalance', priority:'Medium',   severity:'Medium', sku:'SKU-1006', impact:'Sub-optimal distribution â€” 3 nodes showing shortage', message:'N95 Respirator Mask stock is concentrated at one location (83% of total). Other nodes show shortage.', recommendation:'Plan inter-node transfer of 1500 units.', status:'Open',        category:'Balance',     assignedTo:'Arjun Das', createdAt:'2026-06-29 10:00' },
   { id:'INS-007', type:'Duplicate SKU',       priority:'Low',      severity:'Low',    sku:'SKU-1001', impact:'Data integrity issue â€” possible double-counting in reports', message:'SKU-1001 was detected in latest upload â€” existing SKU code. Upload may create duplicate records.', recommendation:'Review upload file. Map to existing SKU or create variant.', status:'Resolved',     category:'Data',        assignedTo:'System', createdAt:'2026-06-28 11:00' },
   { id:'INS-008', type:'Empty Location',      priority:'Low',      severity:'Low',    sku:'Rack D3', impact:'Unused rack space for 14+ days', message:'Rack D3 - Zone 3 has been empty for 14+ days.', recommendation:'Utilise vacant space for overflow from high-utilization racks.', status:'Open',        category:'Capacity',    assignedTo:'Unassigned', createdAt:'2026-06-25 09:00' },
   { id:'INS-009', type:'Damaged Inventory',   priority:'High',     severity:'High',   sku:'SKU-1003', impact:'Direct inventory loss â€” write-off required', message:'4 units of Antiseptic Solution flagged as damaged during last cycle count.', recommendation:'Quarantine damaged stock. Initiate damage report and insurance claim process.', status:'In Progress',  category:'Quality',     assignedTo:'Priya Singh', createdAt:'2026-06-29 16:00' },
@@ -24,11 +23,19 @@ const PRIORITY_COLORS = {
   Low:      { cls:'badge-info',    icon:Info,          color:'var(--color-info)' },
 }
 const STATUS_COLORS = { Open:'badge-danger', 'In Progress':'badge-warning', Resolved:'badge-success' }
-const CATEGORY_OPTIONS = ['All', ...new Set(ALL_INSIGHTS.map(i=>i.category))]
+const CATEGORY_OPTIONS = ['All', 'Expiry', 'Stock', 'Balance', 'Capacity', 'Data', 'Quality', 'AI Forecast']
 
 export default function InventoryInsights() {
   const { showToast } = useApp()
-  const [insights, setInsights]         = useState(ALL_INSIGHTS)
+  const exceptionsState = useExceptions()
+  const transferState = useTransferCandidates()
+  const baseInsights = useMemo(() => [
+    ...exceptionsState.data.map(toInsightRow),
+    ...transferState.data.map(toTransferInsightRow),
+    ...SIMULATED_INSIGHTS,
+  ], [exceptionsState.data, transferState.data])
+  const [insights, setInsights]         = useState(baseInsights)
+  useEffect(() => { setInsights(baseInsights) }, [baseInsights])
   const [search, setSearch]             = useState('')
   const [catFilter, setCatFilter]       = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
@@ -87,7 +94,13 @@ export default function InventoryInsights() {
       <div className="page-header">
         <div className="page-header-left">
           <h2>Inventory Insights</h2>
-          <p>Rule-based alerts, exception management and resolution workflow</p>
+          <p>
+            Rule-based alerts, exception management and resolution workflow
+            {' — '}
+            <span style={{ color: exceptionsState.source === 'api' ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
+              Expiry/Stock/Balance are {exceptionsState.source === 'api' ? 'live from the network-state API' : 'a local fallback (API unavailable)'}
+            </span>
+          </p>
         </div>
         <div className="page-header-actions">
           <button className="btn btn-secondary btn-sm" onClick={() => showToast('Insights refreshed', 'info')}>

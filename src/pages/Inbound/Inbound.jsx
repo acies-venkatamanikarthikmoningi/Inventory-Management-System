@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CheckSquare, ChevronRight, FileText, PackageCheck, Plus, Sparkles, Upload, X, Zap } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import Drawer from '../../components/Drawer/Drawer'
@@ -44,8 +45,16 @@ export default function Inbound() {
   const { node, showToast, inventoryData, setInventoryData, asns, setAsns } = useApp()
   const fileRef = useRef(null)
   const activeNode = node || 'Chennai Distribution Center'
+  const [searchParams] = useSearchParams()
+  // Deep-link from Fill Rate Intelligence's "Expedite PO" action
+  // (?view=autoAsn&sku=...&qty=...) - lands directly on Auto ASN with that SKU
+  // pre-selected; qty is the real RCA-computed suggested quantity (step1's
+  // unserved_units), shown alongside (not overwriting) this page's own
+  // ROP-derived suggestedQty so neither number's source is conflated.
+  const deepLinkSku = searchParams.get('view') === 'autoAsn' ? searchParams.get('sku') : null
+  const deepLinkQty = searchParams.get('qty')
 
-  const [activeView, setActiveView] = useState('landing')
+  const [activeView, setActiveView] = useState(() => (deepLinkSku ? 'autoAsn' : 'landing'))
   const [asnMode, setAsnMode] = useState('upload')
   const [fileName, setFileName] = useState('')
   const [dragging, setDragging] = useState(false)
@@ -94,6 +103,15 @@ export default function Inbound() {
       })
       .sort((a, b) => a.availableQty - b.availableQty)
   }, [activeNode, inventoryData, skuMap])
+
+  // Pre-select the deep-linked SKU once it's confirmed present in the real
+  // low-stock queue (never selects a SKU that isn't genuinely below its ROP here).
+  useEffect(() => {
+    if (!deepLinkSku) return
+    if (lowStockRows.some(row => row.skuCode === deepLinkSku)) {
+      setSelectedAuto(prev => new Set(prev).add(deepLinkSku))
+    }
+  }, [deepLinkSku, lowStockRows])
 
   const nextAsnId = () => {
     const max = asns.reduce((acc, asn) => Math.max(acc, Number(asn.id.replace('ASN-', '')) || 0), 1000)
@@ -360,6 +378,11 @@ export default function Inbound() {
                   <div className={styles.demandLine}>Demand is rising - {row.add} cases/day, up from {row.addPrior} cases/day</div>
                   <div className={styles.warnLine}>At this rate, you will run out of stock</div>
                   <div className={styles.suggestedLine}>Suggested: {formatStock(row.suggestedQty)}</div>
+                  {deepLinkSku === row.skuCode && deepLinkQty && (
+                    <div className={styles.suggestedLine}>
+                      Fill Rate RCA suggests: {Number(deepLinkQty).toLocaleString('en-IN')} units unserved this period
+                    </div>
+                  )}
                 </div>
               </label>
             ))}

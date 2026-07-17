@@ -17,7 +17,6 @@ const BREADCRUMB_MAP = {
   '/app/inventory':  ['Inventory', 'Inventory Snapshot'],
   '/app/sku-explore': ['Inventory', 'SKU Explore'],
   '/app/locations':  ['Warehouse', 'Location Hierarchy'],
-  '/app/data-upload':['Operations', 'Data Upload'],
   '/app/batches':    ['Operations', 'Batch Tracking'],
   '/app/capacity':   ['Analytics', 'Capacity Utilization'],
   '/app/insights':   ['Analytics', 'Inventory Insights'],

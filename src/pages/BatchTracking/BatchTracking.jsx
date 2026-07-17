@@ -1,14 +1,26 @@
 import React, { useMemo, useState } from 'react'
 import { Search, Calendar, LayoutList, ChevronLeft, ChevronRight, Download, CheckCircle, AlertTriangle, Layers } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
-import inventoryData from '../../data/inventory.json'
+import skuData from '../../data/sku.json'
+import { getInventoryUomSimulation, getUomDisplayFromType } from '../../utils/uomDisplay'
 import styles from './BatchTracking.module.css'
 
 const today = new Date()
 const daysUntil = d => Math.ceil((new Date(d) - today) / 86400000)
 
 /* ── Enterprise Helpers ─────────────────────────────── */
-const parseLocation = (loc) => {
+// API-backed rows carry a resolved Area/Zone/Bin hierarchy directly; the local JSON fallback
+// only carries a single "location" string, so this stays dual-mode like InventorySnapshot's parser.
+const parseLocation = (item) => {
+  if (item.binCode || item.areaCode || item.zoneCode) {
+    return {
+      bin: item.binCode || item.location || '',
+      zone: item.zoneDescription || item.zoneCode || 'Zone 1',
+      area: item.areaDescription || item.areaCode || 'General Storage',
+    }
+  }
+
+  const loc = item.location
   let bin = loc || ''
   let zone = 'Zone 1'
   let area = 'General Storage'
@@ -165,7 +177,7 @@ function CalendarView({ batches, onSelectBatch }) {
 
 /* ── Main Component ─────────────────────────────────── */
 export default function BatchTracking() {
-  const { node } = useApp()
+  const { node, inventoryData } = useApp()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
   const [viewMode, setViewMode] = useState('table') // 'table' | 'calendar'
@@ -262,13 +274,16 @@ export default function BatchTracking() {
   }), [])
 
   const targetNode = dbNodeMap[activeNodeName] || activeNodeName
+  const skuMetaByCode = useMemo(() => new Map(skuData.map(sku => [sku.skuCode, sku])), [])
 
   // Compute metrics and format data for the active Working Node
   const nodeBatches = useMemo(() => {
-    return inventoryData
+    const rows = inventoryData
       .filter(item => item.node === targetNode)
-      .map(item => {
-        const locParts = parseLocation(item.location)
+      .map((item, index) => {
+        const locParts = parseLocation(item)
+        const sku = skuMetaByCode.get(item.skuCode)
+        const quantityDisplay = getInventoryUomSimulation(item)
         const daysRemaining = daysUntil(item.expiry)
         const totalMs = new Date(item.expiry) - new Date(item.mfgDate)
         const elapsedMs = today - new Date(item.mfgDate)
@@ -297,6 +312,14 @@ export default function BatchTracking() {
 
         return {
           ...item,
+          // SKU Master is the display authority, matching the policy and
+          // optimization workspaces. Inventory fields are fallbacks only for
+          // legacy SKU codes not yet present in the master dataset.
+          skuName: sku?.skuName || item.skuName || item.skuCode,
+          skuDescription: sku?.description || item.skuName || item.skuCode,
+          brand: sku?.brand || item.brand || '',
+          fefoKey: `${item.node}|${item.skuCode}|${item.id || item.batch}|${item.batch}|${index}`,
+          quantityDisplay: { ...quantityDisplay, label: getUomDisplayFromType(quantityDisplay.type) },
           ...locParts,
           daysRemaining,
           pctConsumed,
@@ -308,7 +331,23 @@ export default function BatchTracking() {
           averageDailyDemand: getAverageDailyDemand(item)
         }
       })
-  }, [targetNode])
+    // FEFO is evaluated only among batches for the same SKU at the current node.
+    // A batch is never ranked against a different product's expiry sequence.
+    const rankByBatchKey = new Map()
+    const bySku = new Map()
+    rows.forEach(batch => {
+      const groupKey = `${batch.node}|${batch.skuCode}`
+      const skuBatches = bySku.get(groupKey) || []
+      skuBatches.push(batch)
+      bySku.set(groupKey, skuBatches)
+    })
+    bySku.forEach(skuBatches => {
+      skuBatches
+        .sort((a, b) => new Date(a.expiry) - new Date(b.expiry) || String(a.batch).localeCompare(String(b.batch)))
+        .forEach((batch, index) => rankByBatchKey.set(batch.fefoKey, index + 1))
+    })
+    return rows.map(batch => ({ ...batch, fefoRank: rankByBatchKey.get(batch.fefoKey) || 1 }))
+  }, [targetNode, inventoryData, skuMetaByCode])
 
   // Filtered dataset based on search queries and risk tab selections
   const filtered = useMemo(() => {
@@ -318,7 +357,9 @@ export default function BatchTracking() {
       data = data.filter(b =>
         b.batch.toLowerCase().includes(q) ||
         b.skuCode.toLowerCase().includes(q) ||
-        b.skuName.toLowerCase().includes(q)
+        b.skuName.toLowerCase().includes(q) ||
+        b.skuDescription.toLowerCase().includes(q) ||
+        b.brand.toLowerCase().includes(q)
       )
     }
     if (filter !== 'All') {
@@ -373,16 +414,16 @@ export default function BatchTracking() {
   // Export filtered batch tracking records to CSV
   const handleExportCSV = () => {
     const headers = [
-      'Batch ID', 'SKU Code', 'SKU Description', 'Manufacturing Date', 'Expiry Date',
+      'FEFO Rank', 'Batch ID', 'SKU Code', 'SKU Description', 'Manufacturing Date', 'Expiry Date',
       'Total Shelf Life (Days)', 'Remaining Shelf Life (Days)', '% Shelf Life Consumed',
-      'Min Shelf Life at Receipt (Days)', 'Risk Classification', 'Available Quantity',
+      'Min Shelf Life at Receipt (Days)', 'Risk Classification', 'Quantity', 'UOM', 'Qty in Base UOM',
       'Storage Location', 'Full Bin Address', 'Average Daily Demand'
     ]
     const rows = filtered.map(b => [
-      b.batch, b.skuCode, b.skuName, b.mfgDate, b.expiry,
+      `Rank #${b.fefoRank}`, b.batch, b.skuCode, b.skuDescription, b.mfgDate, b.expiry,
       b.totalShelfLifeDays, b.daysRemaining, `${b.pctConsumed}%`,
-      b.minShelfLifeReceipt, b.risk, b.availableQty,
-      b.area, `${b.zone} ➔ ${b.area} ➔ ${b.bin}`, b.averageDailyDemand
+      b.minShelfLifeReceipt, b.risk, b.quantityDisplay.quantity, b.quantityDisplay.label, b.quantityDisplay.qtyInBaseUom,
+      b.area, `${b.area} ➔ ${b.zone} ➔ ${b.bin}`, b.averageDailyDemand
     ])
     const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -637,6 +678,7 @@ export default function BatchTracking() {
               <thead>
                 <tr>
                   <th style={{ width: 40 }}></th>
+                  <th>FEFO Rank</th>
                   <th>Batch ID</th>
                   <th>SKU Code</th>
                   <th>SKU Description</th>
@@ -647,7 +689,9 @@ export default function BatchTracking() {
                   <th>% Shelf Life Consumed</th>
                   <th>Min Shelf Life Receipt</th>
                   <th>Risk Classification</th>
-                  <th>Available Quantity</th>
+                  <th>Quantity</th>
+                  <th>UOM</th>
+                  <th>Qty in Base UOM</th>
                   <th>Storage Location</th>
                   <th>Full Bin Address</th>
                   <th>Avg Daily Demand</th>
@@ -656,7 +700,7 @@ export default function BatchTracking() {
               <tbody>
                 {paged.length === 0 ? (
                   <tr>
-                    <td colSpan={15}>
+                    <td colSpan={18}>
                       <div className="empty-state" style={{ padding: 48 }}>
                         <Search size={32} />
                         <h4>No batches found</h4>
@@ -680,6 +724,7 @@ export default function BatchTracking() {
                           {expandedId === b.id ? '▼' : '▶'}
                         </button>
                       </td>
+                      <td><span className={`${styles.fefoRank} ${b.fefoRank === 1 ? styles.fefoRankOne : b.fefoRank === 2 ? styles.fefoRankTwo : b.fefoRank === 3 ? styles.fefoRankThree : styles.fefoRankFourPlus}`}>Rank #{b.fefoRank}</span></td>
                       <td>
                         <code style={{ fontFamily: 'var(--mono)', fontSize: 11, background: 'var(--color-surface-hover)', padding: '2px 6px', borderRadius: 4, color: 'var(--color-primary-light)', fontWeight: 600 }}>
                           {b.batch}
@@ -688,7 +733,8 @@ export default function BatchTracking() {
                       <td className="text-sm text-muted"><code>{b.skuCode}</code></td>
                       <td style={{ minWidth: 160 }}>
                         <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>{b.skuName}</div>
-                        <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{b.brand}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', lineHeight: 1.35, marginTop: 2 }}>{b.skuDescription}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-light)', marginTop: 3 }}>{b.brand}</div>
                       </td>
                       <td className="text-sm">{b.mfgDate}</td>
                       <td className="text-sm">{b.expiry}</td>
@@ -709,16 +755,18 @@ export default function BatchTracking() {
                       </td>
                       <td className="text-sm text-muted">{b.minShelfLifeReceipt} days</td>
                       <td><span className={`badge ${b.riskCls}`}>{b.risk}</span></td>
-                      <td><strong>{b.availableQty.toLocaleString()}</strong></td>
+                      <td><strong>{b.quantityDisplay.quantity.toLocaleString('en-IN')}</strong></td>
+                      <td><span className={`badge ${b.quantityDisplay.type === 'Case' ? styles.uomCase : b.quantityDisplay.type === 'Pallet' ? styles.uomPallet : styles.uomEach}`}>{b.quantityDisplay.label}</span></td>
+                      <td><strong>{b.quantityDisplay.qtyInBaseUom.toLocaleString('en-IN')}</strong></td>
                       <td className="text-sm">{b.area}</td>
                       <td className="text-sm text-muted" style={{ whiteSpace: 'nowrap' }}>
-                        {b.zone} ➔ {b.area} ➔ {b.bin}
+                        {b.area} ➔ {b.zone} ➔ {b.bin}
                       </td>
                       <td className="text-sm"><strong>{b.averageDailyDemand}</strong> units/day</td>
                     </tr>
                     {expandedId === b.id && (
                       <tr key={`${b.id}-exp`}>
-                        <td colSpan={15} style={{ padding: '16px 20px', background: 'var(--color-surface-hover)' }}>
+                        <td colSpan={18} style={{ padding: '16px 20px', background: 'var(--color-surface-hover)' }}>
                           <div style={{ maxWidth: 680 }}>
                             <h4 style={{ fontSize: 12, fontWeight: 600, marginBottom: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Batch Timeline Detail</h4>
                             <BatchTimeline batch={b} />

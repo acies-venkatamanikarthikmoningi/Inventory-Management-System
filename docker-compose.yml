@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: inventory
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: inventory
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory -d inventory"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      # Runs once on first startup (empty data volume) to additionally create
+      # fill_rate_db alongside POSTGRES_DB (inventory) on this same container -
+      # two genuinely separate databases, one Postgres instance.
+      - ./docker/initdb.d:/docker-entrypoint-initdb.d:ro
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      INVENTORY_DATABASE_URL: postgresql+asyncpg://inventory:inventory@db:5432/inventory
+      FILL_RATE_DATABASE_URL: postgresql+asyncpg://inventory:inventory@db:5432/fill_rate_db
+    ports: ["8000:8000"]
+    command: >
+      sh -c "alembic upgrade head && alembic -c alembic_fill_rate.ini upgrade head && python -m app.seed.network_foundation && python -m app.seed.multi_node && python -m app.seed.exceptions_and_expiry && python -m app.seed.dynamic_policy && python -m app.fill_rate.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      db:
+        condition: service_healthy

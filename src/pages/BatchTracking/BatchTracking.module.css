@@ -52,6 +52,28 @@
 .tableRow { cursor: pointer; transition: background var(--transition-fast); }
 .tableRow:hover { background: var(--color-surface-hover) !important; }
 
+.fefoRank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.fefoRankOne { background: #fee2e2; color: #b91c1c; }
+.fefoRankTwo { background: #ffedd5; color: #c2410c; }
+.fefoRankThree { background: #dbeafe; color: #1d4ed8; }
+.fefoRankFourPlus { background: #dcfce7; color: #15803d; }
+
+/* Mirrors the quantity badges used by Replenishment and Inventory Snapshot. */
+.uomCase { background: var(--color-info-light); color: var(--color-primary-light); }
+.uomPallet { background: #ede9fe; color: #6d28d9; }
+.uomEach { background: var(--color-warning-light); color: #b45309; }
+
 /* Calendar */
 .calendar {
   background: var(--color-surface);

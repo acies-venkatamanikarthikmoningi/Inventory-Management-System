@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { Search, Filter, Download, ChevronUp, ChevronDown, X, Package, Layers, MapPin, Activity, Tag, Settings } from 'lucide-react'
 import areaMaster from '../../data/areaMaster.json'
@@ -113,10 +113,14 @@ const formatArea = (areaCode) => {
 
 const getAreaDescription = areaCode => areaDescriptionByCode[areaCode] || ''
 
+// Hyderabad used to map to 'Hyderabad Plant', a stale name that never
+// existed in the live network-state API (confirmed live - it only ever
+// returns 'Hyderabad Distribution Center') - that mismatch silently zeroed
+// out this table for a Hyderabad login.
 const dbNodeMap = {
   'Mumbai Distribution Center': 'Mumbai Distribution Center',
   'Pune Distribution Center': 'Pune Warehouse',
-  'Hyderabad Distribution Center': 'Hyderabad Plant',
+  'Hyderabad Distribution Center': 'Hyderabad Distribution Center',
   'Bangalore Distribution Center': 'Bangalore Distribution Center',
   'Chennai Distribution Center': 'Chennai Distribution Center',
 }
@@ -141,7 +145,28 @@ const ALL_COLUMNS = [
   { id: 'quantity',       label: 'Quantity' },
   { id: 'uom',            label: 'UOM' },
   { id: 'qtyBaseUom',     label: 'Qty in Base UOM' },
+  { id: 'policyType',       label: 'Inventory Policy' },
+  { id: 'robustnessScore',  label: 'Robustness Score' },
 ]
+
+// Phase 6: short display labels for the Inventory Snapshot column (the full
+// descriptive labels live in policy_recommendation_service.py's
+// POLICY_TYPE_LABELS - this is a compact form for a narrow table column).
+const POLICY_TYPE_SHORT_LABELS = {
+  s_S: '(s, S)',
+  s_Q: '(s, Q)',
+  R_S: '(R, S)',
+  R_s_S: '(R, s, S)',
+  base_stock: 'Base-Stock',
+}
+
+// Matches the governance tiers exactly: 80-100 green, 40-80 amber, <40 red.
+const robustnessScoreBadgeClass = score => {
+  if (score == null) return 'badge-default'
+  if (score >= 80) return 'badge-success'
+  if (score >= 40) return 'badge-warning'
+  return 'badge-danger'
+}
 
 /* ── Helpers ─────────────────────────────────────────── */
 const today    = new Date()
@@ -161,7 +186,14 @@ const EMPTY_FILTERS = {
   expiryFrom: '', expiryTo: '',
 }
 
+// Only score cells for governance tiers with something further to look at
+// (40-80 range) are clickable through to the Policy Robustness tab; a
+// no_change_needed (80-100) row has nothing more to show, so it stays plain
+// text with no hover/pointer affordance.
+const CLICKABLE_GOVERNANCE_ACTIONS = new Set(['suggest_pending_approval', 'no_better_alternative_found'])
+
 export default function InventorySnapshot() {
+  const navigate = useNavigate()
   const { showToast, node, inventoryData, asns, replenishmentConfig } = useApp()
   const [search, setSearch]           = useState('')
   const [filters, setFilters]         = useState(EMPTY_FILTERS)
@@ -183,6 +215,8 @@ export default function InventorySnapshot() {
     quantity: true,
     uom: true,
     qtyBaseUom: true,
+    policyType: true,
+    robustnessScore: true,
   })
   const [sort, setSort]               = useState({ col: 'skuCode', dir: 'asc' })
   const [page, setPage]               = useState(1)
@@ -194,11 +228,39 @@ export default function InventorySnapshot() {
     setVisibleCols(prev => ({ ...prev, [colId]: !prev[colId] }))
   }
 
+  // SKU Master/SKU Explorer's canonical display name is sku.json's `skuName`
+  // field (e.g. "Amul Butter 500g"). The backend network-state API's
+  // `skuName` field is actually sourced from the Sku model's `description`
+  // column, which the seed script populates from sku.json's `description`
+  // field (a marketing blurb, e.g. "Rich, creamy salted butter processed
+  // from premium fresh milk.") - a different field entirely, causing the
+  // two pages to show different text for the same SKU. This overrides the
+  // display name back to the same canonical source SKU Explorer uses,
+  // falling back to the API value only for a SKU code sku.json doesn't have.
+  const skuNameByCode = useMemo(() => new Map(skuMasterData.map(s => [s.skuCode, s.skuName])), [])
+  // classification/brand aren't part of the network-state API response at
+  // all (checked backend/app/schemas/network.py - no such fields), so
+  // item.classification/item.brand were always undefined for live API rows,
+  // crashing the search filter's `.toLowerCase()` calls the moment a user
+  // typed anything, and leaving the Classification badge/Brand subtext
+  // blank. Same fix as skuName above: backfill from the canonical sku.json
+  // master data, falling back to '' (never undefined) so search can't crash
+  // even for a SKU code sku.json doesn't have.
+  const skuMetaByCode = useMemo(() => new Map(skuMasterData.map(s => [s.skuCode, s])), [])
+
   const scopedData = useMemo(() => {
     const targetNode = dbNodeMap[node] || node
-    if (!targetNode) return inventoryData
-    return inventoryData.filter(i => i.node === targetNode)
-  }, [inventoryData, node])
+    const base = !targetNode ? inventoryData : inventoryData.filter(i => i.node === targetNode)
+    return base.map(i => {
+      const meta = skuMetaByCode.get(i.skuCode)
+      return {
+        ...i,
+        skuName: skuNameByCode.get(i.skuCode) || i.skuName,
+        classification: meta?.classification || i.classification || '',
+        brand: meta?.brand || i.brand || '',
+      }
+    })
+  }, [inventoryData, node, skuNameByCode])
 
   const filterOptions = useMemo(() => {
     const areaRows = filters.area
@@ -510,7 +572,7 @@ export default function InventorySnapshot() {
               setVisibleCols({
                 skuCode: true, skuName: true, bin: true, zone: true, areaCode: true, areaDescription: true, batch: true,
                 mfgDate: true, expiry: true, shelfLife: true, classification: true, bucket: true,
-                quantity: true, uom: true, qtyBaseUom: true
+                quantity: true, uom: true, qtyBaseUom: true, policyType: true, robustnessScore: true
               })
             }}>
               Reset Columns
@@ -657,6 +719,28 @@ export default function InventorySnapshot() {
                     {visibleCols.qtyBaseUom && (
                       <td className="text-sm" style={{ textAlign: 'right' }}>
                         {formatPlainNumber(uomSim.qtyInBaseUom)}
+                      </td>
+                    )}
+                    {visibleCols.policyType && (
+                      <td className="text-sm">
+                        {item.policyType ? (POLICY_TYPE_SHORT_LABELS[item.policyType] || item.policyType) : '—'}
+                      </td>
+                    )}
+                    {visibleCols.robustnessScore && (
+                      <td className="text-sm" onClick={e => e.stopPropagation()}>
+                        {item.robustnessScore == null ? (
+                          <span className="text-xs text-muted">Not yet evaluated</span>
+                        ) : CLICKABLE_GOVERNANCE_ACTIONS.has(item.governanceAction) ? (
+                          <button
+                            className={`badge ${robustnessScoreBadgeClass(item.robustnessScore)} ${styles.scoreCellButton}`}
+                            onClick={() => navigate(`/app/replenishment?tab=robustness&sku=${encodeURIComponent(item.skuCode)}&node=${encodeURIComponent(item.node)}`)}
+                            title="View this SKU's Robustness Score breakdown on the Policy Robustness tab"
+                          >
+                            {Math.round(item.robustnessScore)}
+                          </button>
+                        ) : (
+                          <span className={`badge ${robustnessScoreBadgeClass(item.robustnessScore)}`}>{Math.round(item.robustnessScore)}</span>
+                        )}
                       </td>
                     )}
                     <td onClick={e=>e.stopPropagation()}>
