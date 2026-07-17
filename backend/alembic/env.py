@@ -10,8 +10,13 @@ target_metadata = Base.metadata
 
 def run_migrations_online():
     section = config.get_section(config.config_ini_section) or {}
-    # Alembic runs migrations synchronously; swap the app's asyncpg driver for psycopg (v3, sync).
-    section["sqlalchemy.url"] = settings.database_url.replace("+asyncpg", "+psycopg")
+    # Render may provide postgres:// or postgresql:// URLs without an explicit driver.
+    # Force the sync psycopg v3 dialect so Alembic doesn't fall back to psycopg2.
+    database_url = settings.database_url
+    database_url = database_url.replace("postgresql+asyncpg://", "postgresql+psycopg://")
+    database_url = database_url.replace("postgresql://", "postgresql+psycopg://")
+    database_url = database_url.replace("postgres://", "postgresql+psycopg://")
+    section["sqlalchemy.url"] = database_url
     connectable = engine_from_config(section, prefix="sqlalchemy.", poolclass=pool.NullPool)
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
