@@ -12,7 +12,14 @@ class Base(DeclarativeBase):
     """
 
 
-engine = create_async_engine(fill_rate_settings.fill_rate_database_url, pool_pre_ping=True)
+def _async_database_url(url: str) -> str:
+    normalized = url.replace("postgresql+psycopg://", "postgresql+asyncpg://")
+    normalized = normalized.replace("postgresql://", "postgresql+asyncpg://")
+    normalized = normalized.replace("postgres://", "postgresql+asyncpg://")
+    return normalized
+
+
+engine = create_async_engine(_async_database_url(fill_rate_settings.fill_rate_database_url), pool_pre_ping=True)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
